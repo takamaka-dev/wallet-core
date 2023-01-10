@@ -32,8 +32,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.takamaka.wallet.beans.EncKeyBean;
+import io.takamaka.wallet.beans.InternalTransactionBean;
 import io.takamaka.wallet.beans.KeyBean;
 import io.takamaka.wallet.beans.PublicKeyBean;
+import io.takamaka.wallet.exceptions.HashAlgorithmNotFoundException;
+import io.takamaka.wallet.exceptions.HashCompositionException;
+import io.takamaka.wallet.exceptions.HashEncodeException;
+import io.takamaka.wallet.exceptions.HashProviderNotFoundException;
+import io.takamaka.wallet.exceptions.NullInternalTransactionBeanException;
 //import com.fasterxml.jackson.databind.ObjectWriter;
 //import com.fasterxml.jackson.databind.module.SimpleModule;
 
@@ -139,13 +145,78 @@ public class TkmTextUtils {
             return null;
         }
     }
-    
+
     public static final PublicKeyBean publicKeyBeanFromJson(String publickeyBeanJson) {
         try {
             return getJacksonMapper().readValue(publickeyBeanJson, PublicKeyBean.class);
         } catch (JsonProcessingException ex) {
-             log.error("PublicKeyBean deserialization error", ex);
+            log.error("PublicKeyBean deserialization error", ex);
             return null;
+        }
+    }
+
+    /**
+     * function for sorting hash
+     *
+     * @param input
+     * @return
+     */
+    public static final String getSortingString(String input) {
+        return new BigInteger(1, input.getBytes(FixedParameters.CHARSET)).toString();
+    }
+    
+    /**
+     * ITB Hash. It puts all the itb fields together, than it generates the hash
+     * code
+     * <br>
+     * StringBuilder sb = new StringBuilder();
+     * <br>
+     * sb.append(itb.getFrom());<br>
+     *
+     * sb.append(itb.getTo());<br>
+     *
+     * sb.append(itb.getMessage());<br>
+     *
+     * sb.append(itb.getNotBefore().getTime());<br>
+     *
+     * sb.append(itb.getRedValue());<br>
+     *
+     * sb.append(itb.getGreenValue());<br>
+     *
+     * sb.append(itb.getTransactionType().name());<br>
+     *
+     * sb.append(itb.getEpoch());<br>
+     *
+     * sb.append(itb.getSlot());<br>
+     *
+     * String hash = TkmSignUtils.Hash256(sb.toString());<br>
+     *
+     * @param itb
+     * @return String the hash encoded
+     * @throws NullInternalTransactionBeanException
+     * @throws HashCompositionException
+     */
+    public static final String internalTransactionBeanHash(InternalTransactionBean itb) throws NullInternalTransactionBeanException, HashCompositionException {
+        try {
+            if (itb == null) {
+                throw new NullInternalTransactionBeanException("null itb");
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.append(itb.getFrom());
+            sb.append(itb.getTo());
+            sb.append(itb.getMessage());
+            sb.append(itb.getNotBefore().getTime());
+            sb.append(itb.getRedValue());
+            sb.append(itb.getGreenValue());
+            sb.append(itb.getTransactionType().name());
+            sb.append(itb.getEpoch());
+            sb.append(itb.getSlot());
+//            F.y(sb.toString());
+            String hash = TkmSignUtils.Hash256(sb.toString());
+            return hash;
+        } catch (HashEncodeException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
+            log.error("internal transaction bean hash generation exception", ex);
+            throw new HashCompositionException(ex);
         }
     }
 
