@@ -12,7 +12,7 @@ import java.util.List;
 
 /**
  *
- * @author giovanni
+ * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
 public class FixedParameters {
 

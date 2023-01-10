@@ -39,7 +39,7 @@ import io.takamaka.wallet.beans.PublicKeyBean;
 
 /**
  *
- * @author giovanni
+ * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
 @Slf4j
 public class TkmTextUtils {

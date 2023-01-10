@@ -7,7 +7,7 @@ package io.takamaka.wallet;
 
 /**
  *
- * @author giovanni
+ * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
 public class Wallet {
 

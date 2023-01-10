@@ -6,7 +6,7 @@ package io.takamaka.wallet.exceptions;
 
 /**
  *
- * @author giovanni.antino@h2tcoin.com
+ * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
 public class QRNotFromJsonException extends QRException {
 

@@ -8,7 +8,7 @@ import java.math.BigInteger;
 
 /**
  *
- * @author giovanni
+ * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
 public final class KeyContexts {
 

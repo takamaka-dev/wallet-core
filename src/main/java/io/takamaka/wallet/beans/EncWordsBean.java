@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  *
- * @author giovanni.antino@h2tcoin.com
+ * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
 @Slf4j
 public class EncWordsBean {

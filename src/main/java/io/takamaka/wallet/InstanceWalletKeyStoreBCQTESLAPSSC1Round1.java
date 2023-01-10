@@ -45,7 +45,7 @@ import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 
 /**
  *
- * @author giovanni
+ * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
 @Slf4j
 public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWalletKeystoreInterface {

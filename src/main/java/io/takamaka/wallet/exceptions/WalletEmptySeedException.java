@@ -6,7 +6,7 @@ package io.takamaka.wallet.exceptions;
 
 /**
  *
- * @author giovanni
+ * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
 public class WalletEmptySeedException extends WalletException {
 
