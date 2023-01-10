@@ -4,7 +4,7 @@
  */
 package io.takamaka.wallet;
 
-import io.takamaka.crypto.tkmsecurityprovider.util.adaptor.r1.QTR1KeyPairGenerator;
+import io.takamaka.crypto.tkmsecurityprovider.util.adaptor.r2.QTR2KeyPairGenerator;
 import io.takamaka.wallet.beans.KeyBean;
 import io.takamaka.wallet.exceptions.HashAlgorithmNotFoundException;
 import io.takamaka.wallet.exceptions.HashEncodeException;
@@ -45,10 +45,10 @@ import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 
 /**
  *
- * @author giovanni
+ * @author giovanni.antino@h2tcoin.com
  */
 @Slf4j
-public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWalletKeystoreInterface {
+public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWalletKeystoreInterface {
 
     private Map<Integer, AsymmetricCipherKeyPair> signKeys;
     private Map<Integer, String> hexPublicKeys;
@@ -56,7 +56,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
     private String seed;
     private String currentWalletName;
     private boolean isInitialized; //default to false
-    private final static KeyContexts.WalletCypher walletCypher = KeyContexts.WalletCypher.BCQTESLA_PS_1;
+    private final static KeyContexts.WalletCypher walletCypher = KeyContexts.WalletCypher.BCQTESLA_PS_1_R2;
     private final Object constructorLock = new Object();
     private final Object getKeyPairAtIndexLock = new Object();
     private final Object getPublicKeyAtIndexHexLock = new Object();
@@ -67,7 +67,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
         return walletCypher;
     }
 
-    public InstanceWalletKeyStoreBCQTESLAPSSC1Round1(String walletName) throws UnlockWalletException {
+    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName) throws UnlockWalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
@@ -84,7 +84,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
         }
     }
 
-    public InstanceWalletKeyStoreBCQTESLAPSSC1Round1(String walletName, String password) throws UnlockWalletException {
+    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, String password) throws UnlockWalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
@@ -101,7 +101,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
         }
     }
 
-    public InstanceWalletKeyStoreBCQTESLAPSSC1Round1(String walletName, int nCharSeed) throws UnlockWalletException, WalletBurnedException, WalletEmptySeedException {
+    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, int nCharSeed) throws UnlockWalletException, WalletBurnedException, WalletEmptySeedException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
@@ -120,13 +120,11 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
 
     private void initWallet(int nCharSeed) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletBurnedException, WalletEmptySeedException {
         if (!FileHelper.walletDirExists()) {
-
             try {
                 FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
             } catch (IOException e) {
                 log.error("Error creating dir", e);
             }
-
         }
         if (!FileHelper.fileExists(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName))) {
             seed = RandomStringUtils.randomAlphabetic(nCharSeed);
@@ -163,7 +161,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
                 concat += " " + words.get(i);
             }
 
-            KeyBean kb = new KeyBean("POWSEED", KeyContexts.WalletCypher.BCQTESLA_PS_1, seed, concat);
+            KeyBean kb = new KeyBean("POWSEED", KeyContexts.WalletCypher.BCQTESLA_PS_1_R2, seed, concat);
             try {
                 WalletHelper.writeKeyFile(FileHelper.getDefaultWalletDirectoryPath(), currentWalletName, kb, password);
             } catch (NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException ex) {
@@ -192,7 +190,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
                     throw new InvalidWalletIndexException("index outside wallet range");
                 }
 
-                signKeys.put(i, QTR1KeyPairGenerator.getKeyPair(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, i + 1)));
+                signKeys.put(i, QTR2KeyPairGenerator.getKeyPair(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, i + 1)));
             }
         }
         return signKeys.get(i);
@@ -204,7 +202,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
             synchronized (getPublicKeyAtIndexHexLock) {
                 try {
 
-                    hexPublicKeys.put(i, QTR1KeyPairGenerator.getStringPublicKey(getKeyPairAtIndex(i)));
+                    hexPublicKeys.put(i, QTR2KeyPairGenerator.getStringPublicKey(getKeyPairAtIndex(i)));
                 } catch (IOException ex) {
                     log.error("Wallet can not serialize public key", ex);
                     throw new PublicKeySerializzationException(ex);
@@ -220,8 +218,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
         if (!bytePublicKeys.containsKey(i)) {
             synchronized (getPublicKeyAtIndexByteLock) {
                 try {
-
-                    bytePublicKeys.put(i, QTR1KeyPairGenerator.getBytePublicKey(getKeyPairAtIndex(i)));
+                    bytePublicKeys.put(i, QTR2KeyPairGenerator.getBytePublicKey(getKeyPairAtIndex(i)));
                 } catch (IOException ex) {
                     log.error("Wallet can not serialize public key", ex);
                     throw new PublicKeySerializzationException(ex);
@@ -241,5 +238,4 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
     public int compareTo(InstanceWalletKeystoreInterface t) {
         return getCurrentWalletID().compareTo(t.getCurrentWalletID());
     }
-
 }

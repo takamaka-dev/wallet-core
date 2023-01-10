@@ -6,6 +6,7 @@ package io.takamaka.wallet.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.takamaka.wallet.InstanceWalletKeyStoreBCQTESLAPSSC1Round1;
+import io.takamaka.wallet.InstanceWalletKeyStoreBCQTESLAPSSC1Round2;
 import io.takamaka.wallet.InstanceWalletKeystoreInterface;
 import io.takamaka.wallet.beans.EncKeyBean;
 import io.takamaka.wallet.beans.EncWordsBean;
@@ -69,9 +70,8 @@ public class WalletHelper {
 //                return (new InstanceWalletKeyStoreBCED25519(filename, password));
             case BCQTESLA_PS_1:
                 return (InstanceWalletKeystoreInterface) (new InstanceWalletKeyStoreBCQTESLAPSSC1Round1(filename, password));
-            //@TODO uncomment
-//            case BCQTESLA_PS_1_R2:
-//                return (InstanceWalletKeystoreInterface) (new InstanceWalletKeyStoreBCQTESLAPSSC1Round2(filename, password));
+            case BCQTESLA_PS_1_R2:
+                return (InstanceWalletKeystoreInterface) (new InstanceWalletKeyStoreBCQTESLAPSSC1Round2(filename, password));
             default:
                 throw new InvalidCypherException();
 
@@ -271,13 +271,13 @@ public class WalletHelper {
                 PublicKeyBean pkbQT = new PublicKeyBean(cypher, KeyContexts.PUBLICKEY_CURRENT_VERSION, pkQT);
                 FileHelper.writeStringToFile(FileHelper.getPublicKeyDirectoryPath(), walletname + FixedParameters.PUBLICKEY_EXTENSION, TkmTextUtils.toJson(pkbQT), false);
                 break;
-            //TODO uncomment
-//            case BCQTESLA_PS_1_R2:
-//                InstanceWalletKeyStoreBCQTESLAPSSC1Round2 walletQTr2 = new InstanceWalletKeyStoreBCQTESLAPSSC1Round2(walletname, password);
-//                String pkQTr2 = walletQTr2.getPublicKeyAtIndexURL64(keyIndex);
-//                PublicKeyBean pkbQTr2 = new PublicKeyBean(cypher, KeyContexts.PUBLICKEY_CURRENT_VERSION, pkQTr2);
-//                FileHelper.writeStringToFile(FileHelper.getPublicKeyDirectoryPath(), walletname + FixedParameters.PUBLICKEY_EXTENSION, TkmTextUtils.toJson(pkbQTr2), false);
-//                break;
+
+            case BCQTESLA_PS_1_R2:
+                InstanceWalletKeyStoreBCQTESLAPSSC1Round2 walletQTr2 = new InstanceWalletKeyStoreBCQTESLAPSSC1Round2(walletname, password);
+                String pkQTr2 = walletQTr2.getPublicKeyAtIndexURL64(keyIndex);
+                PublicKeyBean pkbQTr2 = new PublicKeyBean(cypher, KeyContexts.PUBLICKEY_CURRENT_VERSION, pkQTr2);
+                FileHelper.writeStringToFile(FileHelper.getPublicKeyDirectoryPath(), walletname + FixedParameters.PUBLICKEY_EXTENSION, TkmTextUtils.toJson(pkbQTr2), false);
+                break;
             default:
                 throw new InvalidCypherException();
         }
