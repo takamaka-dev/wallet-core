@@ -8,21 +8,21 @@ package io.takamaka.wallet.exceptions;
  *
  * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
-public class WalletException extends Exception {
+public class KeyDecodeException extends ThreadSafeUtilsException{
 
-    public WalletException() {
+    public KeyDecodeException() {
         super();
     }
 
-    public WalletException(String msg) {
+    public KeyDecodeException(String msg) {
         super(msg);
     }
 
-    public WalletException(Throwable er) {
+    public KeyDecodeException(Throwable er) {
         super(er);
     }
 
-    public WalletException(String msg, Throwable er) {
+    public KeyDecodeException(String msg, Throwable er) {
         super(msg, er);
     }
 }

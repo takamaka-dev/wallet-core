@@ -8,21 +8,20 @@ package io.takamaka.wallet.exceptions;
  *
  * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
-public class WalletException extends Exception {
-
-    public WalletException() {
+public class ThreadSafeUtilsException extends Exception{
+     public ThreadSafeUtilsException() {
         super();
     }
 
-    public WalletException(String msg) {
+    public ThreadSafeUtilsException(String msg) {
         super(msg);
     }
 
-    public WalletException(Throwable er) {
+    public ThreadSafeUtilsException(Throwable er) {
         super(er);
     }
 
-    public WalletException(String msg, Throwable er) {
+    public ThreadSafeUtilsException(String msg,Throwable er) {
         super(msg, er);
     }
 }

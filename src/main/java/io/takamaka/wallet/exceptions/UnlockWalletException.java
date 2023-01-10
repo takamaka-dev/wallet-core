@@ -8,21 +8,21 @@ package io.takamaka.wallet.exceptions;
  *
  * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
-public class WalletException extends Exception {
+public class UnlockWalletException extends WalletException {
 
-    public WalletException() {
+    public UnlockWalletException() {
         super();
     }
 
-    public WalletException(String msg) {
+    public UnlockWalletException(String msg) {
         super(msg);
     }
 
-    public WalletException(Throwable er) {
+    public UnlockWalletException(Throwable er) {
         super(er);
     }
 
-    public WalletException(String msg, Throwable er) {
+    public UnlockWalletException(String msg,Throwable er) {
         super(msg, er);
     }
 }

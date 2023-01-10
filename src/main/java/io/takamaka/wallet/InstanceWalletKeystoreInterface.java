@@ -11,7 +11,7 @@ import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 
 /**
  *
- * @author giovanni.antino@h2tcoin.com
+ * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
 public interface InstanceWalletKeystoreInterface extends Comparable<InstanceWalletKeystoreInterface> {
 

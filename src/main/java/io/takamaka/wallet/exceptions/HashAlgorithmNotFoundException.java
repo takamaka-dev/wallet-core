@@ -8,21 +8,21 @@ package io.takamaka.wallet.exceptions;
  *
  * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
-public class WalletException extends Exception {
+public class HashAlgorithmNotFoundException extends ThreadSafeUtilsException{
 
-    public WalletException() {
+    public HashAlgorithmNotFoundException() {
         super();
     }
 
-    public WalletException(String msg) {
+    public HashAlgorithmNotFoundException(String msg) {
         super(msg);
     }
 
-    public WalletException(Throwable er) {
+    public HashAlgorithmNotFoundException(Throwable er) {
         super(er);
     }
 
-    public WalletException(String msg, Throwable er) {
+    public HashAlgorithmNotFoundException(String msg, Throwable er) {
         super(msg, er);
     }
 }
