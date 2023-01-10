@@ -16,6 +16,7 @@ import io.takamaka.wallet.utils.TkmWallet;
 import java.math.BigInteger;
 import java.util.concurrent.ConcurrentSkipListMap;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.log4j.BasicConfigurator;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -55,6 +56,7 @@ public class WalletTest {
     static String[] staticJsons;
 
     public WalletTest() {
+        BasicConfigurator.configure();
     }
 
     @BeforeClass
@@ -100,7 +102,7 @@ public class WalletTest {
             assertTrue(tbox.isValid());
         }
     }
-    
+
     @Test
     public void stabilityTestFailure() {
         for (int i = 0; i < staticJsons.length; i++) {
@@ -109,7 +111,7 @@ public class WalletTest {
             assertFalse(tbox.isValid());
         }
     }
-    
+
     @Test
     public void stabilityTestFailureInternalTransactionBeanPay() throws WalletException, TransactionNotYetImplementedException {
         //red < 0
@@ -371,7 +373,7 @@ public class WalletTest {
         }
 
     }
-    
+
     @Test
     public void testPayTransaction() {
         for (KeyContexts.TransactionType trxType : trxTypes) {
@@ -423,8 +425,8 @@ public class WalletTest {
                             } //TransactionGenerator.generatePayToGreen(from, to, BigInteger.ONE)
                             catch (TransactionNotYetImplementedException | WalletException ex) {
                                 //non possono eds
-                                if (trxType.equals(KeyContexts.TransactionType.BLOB) &&
-                                        TkmTextUtils.isNullOrBlank(mess[1])) {
+                                if (trxType.equals(KeyContexts.TransactionType.BLOB)
+                                        && TkmTextUtils.isNullOrBlank(mess[1])) {
                                     assertNotNull(ex);
                                 } else {
                                     assertNull(ex);
