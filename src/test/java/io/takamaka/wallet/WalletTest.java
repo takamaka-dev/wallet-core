@@ -4,11 +4,18 @@
  */
 package io.takamaka.wallet;
 
+import io.takamaka.wallet.beans.InternalTransactionBean;
+import io.takamaka.wallet.beans.TransactionBean;
 import io.takamaka.wallet.beans.TransactionBox;
+import io.takamaka.wallet.exceptions.TransactionNotYetImplementedException;
 import io.takamaka.wallet.exceptions.WalletException;
+import io.takamaka.wallet.utils.BuilderITB;
 import io.takamaka.wallet.utils.KeyContexts;
+import io.takamaka.wallet.utils.TkmTextUtils;
+import io.takamaka.wallet.utils.TkmWallet;
 import java.math.BigInteger;
 import java.util.concurrent.ConcurrentSkipListMap;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -20,6 +27,7 @@ import static org.junit.Assert.*;
  *
  * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
+@Slf4j
 public class WalletTest {
 
     static final String msgITB = "{\"from\":\"Dqa7663iqlhtr7dmvrzpVRt33ELsyLcyAAhEdA1sRoGAYir64Cx1wnXHYLfO7bdK_HKfoE6kNenXfIMjGxBGHFZysrPWRbY21ymh5A5TpoS2cVFuIIbc5jly3AlZzHyFLAo85xHCxq1fZKcGNMJlx_kJWNwGNtgJZ4Iedh_6Itj-oXI4-oyeVbskz1EIZQDEVvK5ThGlnIQFRrjP4UURTp2qJY2rWcZiIKRJC9sISetIm-ZLzlg8TtyPEHctO346kbo-EQ5KHniIfOXdtGvlElHUYH_Yo8Gn7WAHZYzJwmTSf6iQzBXL5qWH0FY4MiMbCZqjxh9EXHXr2Fjt40bSMkUmHAMRw7t0PGz2ua3s5w6dVQfQ0pujBwLakf1XdVtiU8RqTtma4UwU1tisckwS5UH9u8DpW39So8bTvTD74EMyio11G7QStQ82s10WbkHfqqz8w5zz91_TpBEcafrFeEbI-OHVEkcjkTP6iygqekcLWk8nVb70vp5k7nu7KtUsu0-YMmWgDi4igQlrkDGOZsBTuRXOIgXbLdpuRjFpvrNUoO3JCFfjwYLvm_kVfe4FcB7CaLvrdprw1zpF8ca53t5ZBAjzGKhVgmqWgAo2LQvdn4KDKXBykfqqBGQR01O41lWQnKW5XUOLTGiCb0bxDS8j4XdWoaiy7jA-I-UAk_G83Zf2yZ2Bh5YMgj9Ji3fI8Cz_caHyUFnsueo_6k6caxfzkBGiWR_xrwQ1qFjt6R-0z4Sl65aHJqzQ0QxqsRCv5kp7IYA1RIA3u2jGCzUPYCbSy3MUqfgze4S9JqMVjtVIMCzpfGQwzOXXiVpH2XmzpZZKOWPEgoOB9PWp4b1HGfSCvR4Jvq36uTRutUZg4IS-pJMtTLSfYXsuRlga0wBOtkfvG4WzSMV24qf4xanWhw8ucjvSTN2QPhrEhasCGCLLR5_SDsiXS4Y3zA8gNPi3lGl7CVW3nLTh7Q5Ehi3xCVh4WfIcIglGbGrZ8sPXBkbN005Urw-XcGhDxW4fA6d9GalFg-6CL0mYYR1WMMkqhzGQNu5JtnivMFhIaVXBGDkjd8PU1M-NNsVBkXy-WjNqYgEFYiYwJrA9HCewODKcFXKX1I_xC1N8a9BbJKiperXWE1rz1QPXRCSah1gpk217wv4zzMnhqAECIFZuC0Nt_AfHdD7N35pB3ysG3YCdm4Ray4c4X9TaoDuVI2RLRIihA9kBP4NYrbDutJ2JNjtEGVkHGKPb1-58We1l50MURiiOhZecSWk_QgPsjwlUQ6Eiqt-ouywJiQ9YXLf5bbaHvNT4IqxeAZcPMnMAo4jLEHxHYw9Ii0NScmD_v2iHWc1SRdTIOAxqlAtEbWGYaSESa5-VJNuIjIXrKPzNkWlpuQ3iDTGzsP1bbohp8IliSnBuNZOV-AYVbuM8iRVKq_VCU7hsBCrTrj_pRrmlQDKJ9Fan6oiuRM3Iwl6MZnK33EqJpM4vz2ZKiU5kZx85YHVPqKfA_vOGwAe541s6590kW_Hk2h7EswvNuKzzFqh7UuG85EBMy1ik9yiuvnnCYUWP9UOf7DSyv7QPrE5_I7ZpprbXCRPCVptXBvVGEzz2YAWNye-5iUz4lSabbaWYVvT0FrcPahiEYh8JRp21umJ04kTEaAgJszMAnshsPFl6TRaG3AFDdmxC3B-uUfSgKeW14gaylbeFNhZR2VEAhQUWjyvYa4a4ZPdgnWPYpJGs5hQDHd0wrfr9WdRB3c8zMoVxXUKLKVfFi_0Bfmz85Hky56aSgRDRoWIobtnlvrcJ-Hi3qmnBJ9540GDcYBpGczaUHtIrV0nHczPbNq8KG16z3rAiZCsumAV0NxhcEyp1OPPkkdZulEHjiQOf2MFU05EbpUOIw9TIRA-ZzfEG2kmqpD8YHtmk8tXE6FWs3GIu9DgghuOY_R2cHdT_uou00HAEnjrzsUzHPU1wiVEXHlNxkfUfxyvIBJakkD1x9QKvzxDS-Ew5CZ89p7tpdapPRo-ESwtSMzqFYO4An6_ERo8HkxQ-vFOw9E9rE6IjhCzE8LozrL1-Rk9QEjX31UfPiVnOYthlv_EQLUCIQ40b4Tx9fXLPtA2XMAteG_LbP4D6ZCmCysPp9u45JXEQNx75aD4yDcEF0smD8E-kTTEYMYnjDUox5W05WyfoTMk49zF9PXSYWH_UjKzTOg5rMmgz3mkWdBkDJv1rUmez-SEh6-3hKsLEhbLqeIIsaSyVsx4AjHEn4FgVq8CNAl-4bKFJFPnuGP2-C_WsLJXrSAOEMdTb0PI8Lpmvax1ZwWrlAp4e8k3i3Pz3R4K_NlKE4QW2gSoMTAIc71aLqZ1-QAyxYsHmzL7veNiWgF0f3aVxZseZLDcXru-kMK-0qWP1iyZyZ0qhiri5dSIXMZGCzjgR4olAl-Gn2Qm6E18WvnEYe2M2PeuFove0U279uvXni-8ZXY0LDfVJuz9VcK3eNlX4KkaXvIjmRcJPofQEcAZNb-rrhgykmR5tcxbN1ej8VOcj3GV63YLoFizPiyyZi_IkXPfEC7hRdo0am5BkIOtw7QFVmJtIJQxO4sdflJgm-Q4RhdrX_4ZuEDS9XcN1igJ534we3gmgxx5D4ljVv6S1Hd-2RVvLyoqTcSkOFqnXKDHmpEpyMNIv2ulQPj-V-R8VJKIMAUEE5GDDrx8jDWyUai7NYFOdyBJiKiX0AgSa5GB1T1iq9LuD0tBqylP9tn_4LppzLJPPQQXJHFTuaiuqJwdrSXn89iqloGZlHYBx5K2qcGl5cDmDoEmBRCrVjWGqvDohzxZQAYZYC6261FLwYjos1WbyzhhZbJD9b8rpvafSdNNMLxnPOPhgMK9dc0EdmpBdrZ0ZZUmoEiZSAuEUOcpa6UyO4LS-T5EuFTNXs3QVUAi_dUSrtUXDSuxdvmjem0WeUHlg7lNbWPWoGRvWZ3usHP-OWrGWeVsOOr-a6TM7iHXWQ0v0QuwcHFJItRhzIe57ifOWqUofxNpXIJq9pobOmGQZpWJ8mzaM78AU5x6CxLxYrWiy5kXbvJgcPBPxUlN_qUzfXSkMwcCc938mBcGPlflC9wYWKYw3Hs_UoXvN_KesUGhL32iWEDFcYDYkY49otwZebrNxukKi2_XkxKGVXweaEfD1WNSOQOIxVd9zbe-9Z9l88bztkZQ9RklKD8660hCcGZap8qgHVXOrMCSvR4d5qsuUWS1spV1tn22RbJVgD_gmuIYlm2ZQskkxVVJyx5aUM7zUMq1Qb6PRM2T91O0RsmXo8xyKcPv-9w5zRPN_ONHvlFYr9a_SuK4zRGlAOClUFlDYXTrPcsLjcHWKZ9sRHbamPqFOvX7tQiHlrRvnCm84c4O3S0nkewNxAlum0jSEncdazyf6zAIRxP-xpiEXslfCqZbVgUfbjmsiSSVQTUfpLb7FyUt_dSMVerLlRyfhi6XTsBI5hnNEksDRs76pTMFe4emufvpyS0cJfT32El9TIJJuQYsNdGriu1TjO-4EXsJYnm-QjbcGtAInNal2eMcjlFPHbWtcl_aJp2ztWEtkfoq0LkxhYSkphw2Hu6qyEC08i8PGv1gZFzp5H2f1adkn840sWqQytbPmG98mPzh2odR0A7BRWiq17Y4FTHVagYQ8JMsiDrVVJZKDXQ-rT5vojXNok-JQokfuMxGpRgPecH6MSPfKgtek2yVE5IQ2KSwpLTkKE8x9zFMxGfIzvPQ7Dv-vjEQ_o2Lji7I4l70xh5arXxLU4qJbiyZt2MoEDkd9_Ip_qNGj6s0PyB-UANkPF2_iBb6yYwEzUjEbN3sufLVx9p6lipBKduDuJ4y_u4-2F0VQUpCs2UBzNahyIcLkZw_rOeDQ7r7qLKj5sFGzhc_LsPDuDc6cLIEXVi0_FFJJpWgEEpn0-fT6gLApTzzl8PE-61X-MlnfoXP3HSecYP85XlTeaAsmckfX3B7CrC3o1vyoFqVVXLkslNcvVEuPZtioIuzmalq42PULJ4kfGyd8c6gzA6oHG3ERc_tNhqVJVUniFR-8jI8zYJGp0AUJLe33WWVfJYF7kcTfSoNCFCjE_h0EmzPB76KNbnBYSKQqPFI95KEvcJax9FKaCaTRLk6PrtuDjIwOVkJKJz1yoTyDEGUYycTzFqYEwUX_VNEG2Ar7Tc0t3mPkjVJicqb1rJ8emDizS5GQkwuf9nb6cc16_ilWePSQg__IuUtoObdCd4l_81VV2zO3tIUEuhUhhl4Asu13osW6MbEfSXVTVBwnsYbypJeUGPbNfipJGGyO4gmuQXaGnqldZfCC9dezWexzuunfqcoOk5QPHBp0uDFPFVQQ5Sd5RWkEBlE4Wx83VOcMmB95shfZ3PPw99eAjxSv834HIPgwfmekZyScziVQRX5C4_WluncNxOss2ZW3zbF1iSzPo2GeeqVsatQyPEYDHrsUjTVhtASaZsDe5GKo4yMoV-jkkQVMOHg3T-Kgvpo56o-0GkNLOxMo14EFatvqsbl0H3nw_mxqJynIGOLg5dJVo6K1JqC5Zradcyh79o5ENvEtvkRsNUFWSayGpruMcgvqVVsbz0LsIPMnhRpqLCvz1nku9Bj3722KgW8FiAdf7OPGpcd2TOLwMPvkj3dGKi3AEUMTzoiK-yF35PFjgx6wA2QX8RM3pHWqo1FLA1ap11cBkK_a0x9GfPBodQWLLctAf1-SmABapMC3OEGCQH9QzfEFsy82k_J-s9w8yARujhkoU64D66x6zu51Yrl-kmEDxyXXvuvcuEYXUL1AaRy3nMijP24ZYt5M_4FxIPXEIUlTANukdasG4R2P_iSaUiRunflxxy6j9moupHWj1DmSYMALG5sZTVF2aPLYLjSbeQ2Ei2gyS7fhwZnqRIrH1MlX9QqRv6RDNNJDhqQkewWD736Tnvlv_axHsUF1zxiunu5hQhoZGJq__7Cb6lTa-M4uySgiF8kqwk00LnPhPkkwXEJR0EJDaCdVGXKwlhwkKCkyqaNxU7RYuI0vHcN0Pp-ylz_ZK7OIHM3fIDyHPRg7gb2OtIKTdDp3LYw-2A9tdjlG91B3XvOQH96fCJzl5hGFVY7xeoJSDEbSRwaBeO1biG37jtHt0XL7pwCrwvYqGitcHra2DrW5Ine8dEhRdp3tTaowLj0Z7jnCqoEqz2MMm5xm7VvkoF3qEPhgi1_3UQxRXruunokRJkHx-xCiUZflAYISAl8Egz1O3EX0F432djN19F5nN8OrUV_ij5eOzbtHoZtxOaNaxd3mDqvBueN3wSfVJ1mG_gbX5BwhLQjgkQFIdvk1m8bWwcfEHnzfQ-aT5j5mwOjOF1gKOoHgqvgmI5Mwl7uYU2dokCi-MG0rG1WP2UF07jgsOEa4yVSYz7aXcXkf6bp71_GTN5GrbXkaTz4xHvTH4LcFZjUqipWT0G7MEhDjmMr4k4qzt03cv9kG8MJQu1MFIey_qTbCEZqkZXjtTsXpVuDVkxQjkMjVAeRM3pNgKxCDm7EaEQ2tGD2L_0Z3Spoo3T_YHGUBKtwg87AvHjSQ3vSXCKYrNQqX-U2dmb1MH39b8iocOgeBkZ_4JFJJYbh7zn1pzbyrN72mCkvemczI3jPIKcjLp2Ff_uY9SIt5LSbqXQBaTBYQqt9uh6q1aGpASWDUAttxSoQ-NjEz_FAs2Ekg3jZifMpjDM_atsyIdrVf_22TGscABHezyRE2BoCxWayEDGki5tDMZMZAzpHvl2H7aNtHkM3n8pwiYEUEwT8Z0S3b21tVvZGlQ9DLjmTKX-dAAwmBdFrewBW4Lg8oJGyCJzbMl4BaHxu28u5TzK5BJjd6pFnu1FVa8E4iiBqmW6tfS7yLIVqSwETGVXEIO5r6nYZlTKrbhvXEf6LNsLpy_xEpaK3gDuFv0k1oVzmT3oQtksj5YCKAgktlVZTbGkerQ8nBJdnOoBSOWs4qeD9T9BJKqNUw86qN4ZQyEAM9TEbS8KZ1POiPxofMyh_322SLPg26GJnJ6r4AQyOeE4Fxh2yrYNZNloBJap6ybTzqsui-XoI8Lk1wS5qwKFK3ZDZM6V2m_-Nq7G3nwJkkLhYkaIq-On5i7jIDfY5O8wxdPArvbJkuUYGogu7Wzyuxrk1pnccorIL0UgFHwgQrKRvkr4tcudYOZ5spOBbmkW5K5xl5q9vK0DS-HvTsHgRqBrzAlh8LnVI6c5gc8Y3M7Fq5MCbR11BePtmxH16sRZkrjz62oWBbbOJNphyfUlvZMAqnEbTsiSDk6vr6QHW5vEdcFRargZOY50eW6AhrSxolTv1jHMCLK9cFzkoMfvzUNmjm6RZf5lUqZbRon2rNSmoVadrU27ZpGHNy5x70t7xa2T8wRA6QHrdrBmuzvgvp0iY1wXC0mAV46N0oQ8yzFFvOqWiZFLcoiK4IPgD21n3oxBOMlsUxx8X16aQdRZNpY6OBiz_8kcxL5a50ILqj23iRTN6dEGWJkrQIbVVhqJFapOxFcH9qZjX9PRl1OMkEyud5tmYSZtwjEAfq4PDOLKbNslW3N-criScn1n7to0Mc6AsHmZ7T6fnw-pzNPBqu5BaPe3k4JQNfNC_fJtEREzc-weYFtmu7-LOZtIsvSt1DHPKAP-JGv-RwxVayBPzlOSwrWeEzDFbxkeHVRDbwnSigyWwl5xr4yuGiDqydSOfI2VUfSr_FahRNKs67Wn6r-z0EaLcGDeJQOfbZAEDO3yGbK2VA0d_RhulcFUqBJaSauP49V0YxbTe2Sf2QqwJ1VYmzXNLR5VhDPQo29CXS8sUwUkrdTnBReNuY21I0Dpe1o9IVNXvPWgEfgwFEGDSn4gi4XpH_7V70bt7FFO3rhihySH_JnSJPC6SrAcOMzTYsLUQAQykxVTYHCtMd9y6dHAwgy0qb7yjXIysGwbt3Y9KMXdgo4hvenjV6EIWRV6fc76yHbWgTS-AeweMn_k4nXvrvpe8BbZrAa2TLXeeenIu8YOGJZiZsCaImDmguJR2PP5ytGy4ye7SBlNDIe8sDSFw7Z1ym1DyMIuTYhfm5urGqH6D5834gBMS30zAyNKJEglKWdF8GH4cvAkVADdToW2S3p9WHkLixE-AH3aCU0Q72yGzTsZl7eyLpTBtqK0672ECBAwdrRGLuUrgm9DdRzaQ0oIxTIPC8294Sgs5n52C0e5F4gdX8o3Do2m07-plryehq4Q3ryMOD-XQS7KKilmGoDH281CW-e36vns-bnq6F_hKcKcLTQF-Qa9yntT08z_lyJ0pGqTltmMNXv6kuZVT2shIgfFGtgvUNWFsXgtBdqYeBBH0PvdQi4T48tdauVmK4NX4z3SwXW2naLwDKUHseJorIgawRKrQRXTX_zi9sy32nDzTHyTXrsJ11NgyIm2iAYpE2DZeR9EhVMIQNsToESZiPNiG8jK24Cm1DjDvsyrCaneT3fE0mSRfOJffdZqrxmao6Tu91gahBo695h8b1Lo9fdqxl0u3e7q_VvmzGgPRGXXwWipPlLsIqEIwJWrOaugQWZz9ZfbZ4hW2aqL_5X8ZBaAtGiCMKf8VL-0GGkbkOhRorATy3ErLQ-ubg8JaFKDSQjDk7BOgeMOeoAXI1LnSoWUIPT-3COmC1MkfJTjeJWdyGfBQt5ii9M1BJRJeqpCMqzUdTvpyL62qllXKYxYvKv3P8PC4Tf4IrDS3X2JJ295Qhjd9UikrgTAj9rDcuKB9TXjNVxiN6OaV3cMjLxngr149dcCKIE0SLTwlfO5t99GHfyzxZTu_-G0va-ajYt0x-NEsD764WWPjKx3MsUe51apSOIz63eEuLidlLc2uk3qiGXQj4CNd2GWbxA7EEF1JK7UrvahLUgfR1BEqhHZIH0HMxLLSVkLZhMGDA6bzV1N-sgia-9BmTITacVxc1B19ZkBJQ8-7h2KWRya6wYJyRe4XWQ84ALb2C5okPT1neCpmgDnfqg7rR-Wy6Mr-JR0t9hgterq2oB5Lz3jLHjLHATLzsJ4bx4uWy5kzFhwNK2YMvri7TYM-466U58C3hhMF8fF14E36JhVPSgZsGpwOvWKsuHLWbW1o3MqlMNUdNQdgKiC7vv3xqCgmjU-EIWnwruuBVWrdCN7i12hiUQljEuQpEEaoKzkc3rJt1bWQb95KYJq26cHmyFF_p1eF3kV3iF05CXL3B3A0uaPTZFVkx2mauoF5Zhio4Ug8z8E2-K2tH2n4jtbv4PkkqksJl1pVP17zaosA6NfVCHPIaaZ1EHbZ-NF4zgyjC4C7I13r4w6Mi-fDlXxEaCeQYcBdZAVvdACMZzJDR-KXqPnKShXhEA5HQNvtmyYZ0XVH5uIcRXtevIs2RxkFiMUJsZVP9Zplnw47KTB7DhUxkywcpH7wa9uSDpZ5WQUKvUoBRxyM-8dd8RnhGqmr53wdU5wQFYiC4_MRU3-v0jIWOK02qetxg2_tUP9PDWvWgoX7-EUDhprhOtSkq9k3ijBg7NEUMqchCw58PAvlxVTN-2oe6i4HdbHNixnCS8hhnHxcC0lOGaWimMg0_PLYFh4-NhCDfaWgRWQbMV5zx219urkACh9cAXGCOM4fWBGp5XE-PTN61QaFSiDqHDoe-tQpdi1cJz2vW2m53RBq1nHm7TTtFIRblD8i2-y-XLKZIPLYIlGpFsaOBPDRA-S6OPvume3RhRy0iAt_Qhcii60m6N8RjRvSLMsU6xYVhTJr-DRTtlWGllnfwb_mEFHG6lZkal-IdeWtoePKF1PvSZaTyzJFi0DOYTv5ZEb7qonHhWuACC1ZX2fJ-R_Nd4aUHkg7nH8G0meAfBZuFdAYGgwMlEf_c0Qvdk55NzI0o0x2DXzK9acXB1a75is2kEbpeGSJklbZzceq91lpiiJ0PBv-_HeI46xIQBRlufocTLSOOFonl_yEMOQiyLBzsqeb5f_5J6yzP6YvkRGAkSZ0_kd7-wcC0bMxpziGj1svde4FBYQ_CSnHWaoCc0WGwahq5MFLDZPjKbkYSvQEbZIai8dSYdy34Fr-k9zqJgYu2jd4eyFZYcS4fml6ineNhJmZpbw8f4c5kxcEoPhfT0JEo8sNtY1qdlr4a0WqyVGJvLVkPKaRcEwe0-rSd6KmeaNIjUgeO0337Huht5PqFQB-wJgNj0ErJoPNmc0LvvqjUxboiHwg7C6m5jCbpK09jwauqlf3oNmWGLDe9VbU6MfPZjEyi4G0qg2NF5uWhlYyoZwwfhCROM-gblrSFPf5tSI7u6sdHAvTxlXmm4n8SuiNKAretbaAlPHnn0DfOiwsbLoSvF2AgclaPJHYQSaT9rj2xBQcDBf8C4IqJt_0nljSTrDhyGaIQC7uOklKTpWxiDiCzImUULM1XJawblT_s3jwLdnQXOZauKYRxjjEllooCjLA4gC7b3NmJQhE42cOvfFOQNl7Xjh9pxj-ywIWTQexv6r4dKqCZgUmD9lmEkr-f21lCCUALTrmxboSyJQi2mrmq1LBPnjRVxm48PB21gwrzQImlkbzOdGTwtwPqMgI_ZN8I2G-rZh5alIQZKW8FmggBXWtHjJBszHpEU2FK5rmoFbAxdPOQSFs5IYNq5wWhemapOaKe9Ut9Yrr8F-WX2gk6cXZSUp4c6ZgcRWYaHuau2c3QFoTeP7H-TQ4sOr3qz_Jys-saKi05lQIuehZaxhbtK-wnvyTg3QBN6bTi22yp1fTCkBeySMJRaNV3_lkwLqAwWbKqhlFmmHtxxrR9W16x0f5WzsB_fmDVj0jH1QU_MJkaiiNAIPnCn0ziOYrj_ef6e3vxO6o0zVD1V3ueTMCUcVziZkzde3Sl-WNOProzuhPAGioExQq9uwFwo0lHjjrvm4wUoVqjKtUmSkAKDw0dcWQUBC2h1gmuNzGffoLasNojph2gqMsKvL5AI5RWGDU8ooT2CaqNC8UVE8BCCst9AA6_-7Sz7zfMZgUdkm1JOcVzGpaF-hfx9VZPS7yTgr1SA5dspxjq8yOQmN6PqYVGvLfKNI0BlbCZicDPO4f5Uwq7U63WQhSsf5CsQ8yvZp5DDEM7eThE00F7_qKq3T1rOpHzXoM1ckOjTLmaX8QCKfbzEgTuaNkbxgdrnwbvDS8OKUuThitnlHPd75JjYhAJT8Vao140yVU9T1tMY1GebP9H6rp2Z3sg6YLD5eVF9pb5Bch8sSwsoAu0LwnGMkYA242aGaJyvqh9dgQCAOztaEeouhk_UyC6IvuQHMyHjCsQjt_29SgYZ-CPNnDsZZORUne0eb19L7CG07ouk-5uVOzsIeXeK4dZQScarsUZPUx0jFD_bEnjFdIUy5GY0goxZwPePIz3qGbufnCIv7_Sxux4g-3Rp4lhXPi4elpR99VhIX9F-BUHwAYkOVWdQpHwPJijCKl5DVH9PRUxD6F6DL8apzXKpU6LVEyogFpc5IO8UKVPlYVVKnwRmc1TISVGS7ltMf-pckAeydAsYTDisvQWRKm16h3hpmEacnkGAlRoRVTPCiwLOhWtQCYRGY2Q9ulhbGU-PY3DCWfVgmFKcGXpU1jqQvsyKnD1X9AlELDnR3vz6XiXH86Y9IJpWKTd5gC5FrK7foWja9vMPdg9CUwog8Fspf4Pi2wgbMT2k3tSnHkVpLMaREwQMeYqrFuWlHxJKoHPF9zUTz5EWiHDIu3g8dCDXPNwJdpNtNH3o2A0Y2y7z7gZ7gzVEciAHoOfbq7RkNo5zgfUcHx5I1AfOcJ8KvTijagLkUYhqMfVbuhrOdr0OYIlmmxNS-XOCY34zcA_SobI4fww5Ue482ZqyughUMQZO8PRUjDvt6h_nZpOPS4S1MDnbQULaCestPaxB6IBRnpMywsYtcuIlb-KGDZEGytxzMkNJsGLdC7NUZscaOaUO9SkJDV0uiH38GHf3XAPTUQprUbPxsHdwXfD3ye924oG5B74gRKynTVJx0ZwaJ9glv-Q7NgEbYvV2HE1BFCoAJuc0pqJbNia-XtHLGI808bCGSX8-H39Nc088bNRpgi4IPF0RnMtbg-eSs5SRDbuLijQogLj7MdZLWQLnqBkzBasgZ_a0YsEywVuuEiRC4zyVcTBY_yABRcd1CmLbIAe_-pRtpPFENuOY0WB9sXyiHYGqcBUpWxutekbo04CLBeRgZ6cZPfm1vx-_r4Iehfh8vOO2BJzo6zaEEjKE5eCqaTR1lkUOM7gGjrepn7glKNwi0vMAaunEVDDBmgLlp7Ijfw6niu5YY5y3JFRlRykHoFl9zlXODwibptvGCNzRr3AuZ3ky1i0gnImH9-Q94kjCsBRUriGirblEiBRBlHMqV29l_dXrOh2oFmH08PUnq1nUKFagIyTEOMysDITMcV8f3fL5gXvz8vv4YCH0uiEEcXJqRSvjoSRTLzt5IcmVD2URbs5voU94MmNIZFtugtwe1tVXjFwkj8je6J3vmGYqud6rXXVoSRneAR2yHT134X91Szoz3R_XoJzkYvNhKzg_-8MBhRtHrJZTjmJgufEtwjENKaXa-ePUD2_DGx8XNXhMQplO3-C7OCxM859k2tNpb4YuufWAnfIHiQ5KnWFFSoEU101K_jO0mV3P3_EtJjs0pZyKy8zy0JvFF81aeP2KQdupuJUnQtvqi6uPeacHxidEJm-Ymm22v-yFtUubjPtNoIJDQAJJsIqqfos2vImZvQI6Sk6iSgnTxH7pKl-rrJpmQ-8ESWo5CjKNVE2fJWLq_PYsXl8tMXdZW31VxfW83V9QK29O_nVj9PoCxXmrAdxE19IHOPcTtI4D2yKLc9iQWpDuIQq3SsowO6KWufRN6IMBGeWdHog75SfUGpsLWdbhyKl7yHT9RkZn2BOkQWclMYecYzv3dwlZW-xAdBDrwpfpoKh5dLZ7_hKmJ86mvEaDjv4D_HleZA6PpHknEzdm8tui6K1Y2OacblVAKFdCjPwinfET0A0mwFNSv65bqUxHmK7VLyc0cKRK5TmkzdoAI-Hq15Al-Ynh_44AAthRtVLz8k8CSSgHG2QXap8mITSRukUwB13ZaWMeyFP7toin_OA9jbyRQKir0pW5pXRerKv8JjPKM-3rNIoJrd8HQscCxaypj7ujaCJdj3_ktDf-1ur6Csj5eH_OqRkl6yhBs01jWQTnah3tdPsTQ5rJNdHaQEHIEAzh6itcbbAKhlLHYNTTsBmLAUsYJ25E-kgvc7o_s5hmvOcaRoFoKw1tC-jgnFcFd3UmExR9clKIaR945F4rpX1CCdOa2dgbqtna43f1lRyouKO_FVlBifEt_YtdtZjhUWqLAi5zQJI3U6PjpMRtuxKSfjWZkav7TtwzA9KmQWX0D_5wSWtSvQO6vkeAtJbBzxijc5IqNKb_iB46eCGvCIcLZCtGT_eFJ1teW3wv0ctaM779Pvqq6mD68our7VobHivr0VZBn_ytTSEIcmYgILLPPmIJj1M6ga1U3jKjfdCYeZEA3RhM47YgSvYwM7fEyNODBXigMPGcrCpjNSmREvwi9-zpsxZIqfuNcw3W8LnwZq2nnIig4ocudHZnSiFzDmXfFU8BGSJF3YJYiKjkdJkKqqt5VZBtJEMB46HsvcNIBnpVgCzFb2kkYaXOfVkEKt2YuU0We1mc6DYq3MZFMvpjll_IInjPGX_Ap6y4QJ45x85PJVAWjARRxNE9k6NIhNeNYSHYq4QtKmqdKJRV06oYS92Tqvr9DDkNzrOLNGfINBqa4EA5cRX1qPcBCLYEZrNietolRDbNaeQqOrEQSFzxw5P0b1wRpNp2e4k0CL1jALWYi1ei0AYnjzBdCNpdDISQSVA9xnOba8Mp2QVkpWlGYayeO3-1rENtLWWJOFo65ZjbWn8WnOWxkQzJF3ZAEFeDncfgmu1Wp7SQfdcWkirSbM3uMNbJLevcp2J3xnHzkkXjjGUGWdwysBMnxitV_1oVkfLb1JhMcoTHqh1hUewwuiyQX5a1qsMCx5JCxbvE86Dpd4okM9z4mCLFKMHOsaYLnqqxq1sOWeIrfrmg5nNKMA0I8K5Xj_SWTcyRNZU4zOBsiZTgtdk-SXfnK-D8Zw0FS8RGzn52nmPuUzqIm7ut8F9b6n5r7PbGSSvDuc5UYyH-nJRmJPeWXNgDk0pRCojMAe4Ftz6p5JRwcQ0W_sOHAwKIAo2ZrjUfcYSJWNDIudQO2a0fVQR6guHRP_LvklXAN3EqzroK8JHXrZFwj8h_AfR3uhbw2DKSGKvdbZAn5UgepRy_t5yucIJxWqsTSwQEQBBTVDKDFtrz3p9l0gykIj0lq0uq-S85CpHKvt0S563DpWaL_8bxZg31HPg6vaSZBkBXmHnlk0j2P043LfZP-B_82RwJWUr6V1VqAXDMOaR3DUIC-W6MyHjqYFNwca0dFyBlBfNrqyahsU6XuUj5eZWcnNKwtmY-e9CBUMtA1zBqNSUt-QRp897bCGE9NjEXLvkLOyYJ1z-lHYCliYadacyX_AaVuPtULXCN6zAMpBZdWl1rV3m2Qh-S2wE7XxCZzG22g6epctOgwjY-jQ_zJ7jVX4bn7Mi9FAvP7SKP4aYaNLIND2htqSYON6Xv20js52LS05VTh4EMuGsTsZT3sF-6YfmAOpOhuvPADP3rK88jvJJKZLGY1Teq9fy1901TTB1G2bPr9CyoHz3So4Fb59l14yTXrAyjpCgqT8O0hzqZEpI9uSGEfi0thWPasb2C0kIZcyQCcRg9JZgSN8Fkmsf7gNGwFvqwYVy8mSraJDFwepTNs7mBTC4e0Aj1hD9uNiOctKoq7ZFYnreRZjibhfuK5-sLg7WwzmutWPnWpIcNpAO5f7VfteRd-FcJK6qbsWcax5EnThjrpN261ovU4VxGEECCAZbvJMqLEfJ0zqhXI1wxWSaxZ3O0ip_jgtP_-oZrkj3shc7_2RJ9QGdTb4XtHeR8NdgVhoUq7NJstyhTqkw53id46AZVXawgoCiu6bpOq_yVAhYRvdiMI4puCEhkGBLgzsTQIDzN5nxAamuVGckN1HoybsQwNd5QgniaOYmOKB57-KYddRAlo5Chfz3ceUmMV9Cc_UGBvu2FQpJv08WPVowftRIEsRnMUs-lBuvZJ6IJ84nSdz5aj5VRFOiwmncWxJvHf6KtoVNT05GKZ9RTPL05o4MtyWpUm8PoYxNEK_-E8vY-LJbo1OIpiL62FqGUVDyHKfVkbRR482U5khOFZR0dEeF30IoEUFF23_rNhJoONiYWmUURqns-okFK3WvyhF7i7RoilkQ1wOG8PN8XR4XEFwXT11MfGtApJFyNGT1kFTG0Kb6Veiop-mHa3yYUh7IKcIWHG7hg85UGMOWGNlQTH1kjwtNysACRIhVDU-K56YwCFqgBh4TuMENprXKXyN9BdY5Rl5smh3wWc6vmINeT8wFzmPiOID2bo9OkJVWeYQPZ8h8pTaFiEx_Ip68E9bADbyyb5Q2YOK0cJLSfTLiHdMB96exO_eMGXVPrYh8aAAgX_20LfMtnj7KQCqL2PbivmftedEwBOjrskgK2upyqCUito4KtvKrhUuEzN_g8BjqqA1Nv6_jWaN-jo6NRg4DkVyibDp9P6Fy-y2DQdZyq44oKbzHWr-8azvxNTQDjL7b0dy4WkudTQRjW__DWUnLRQUIb23xscn9qgSwuHUQMYweU4ieF8f2l665a0TrJ2WqPtEHwaXWm6etgGqulE8xoP7Hsdo1Sgv5IRQWK3y5vTZRIv-PSn-pLXWiK7NTbQkvNRYjPGhI6gNRuRl8-9AExFHdHsIG8Cx0WwPZL8Fh1-58KNcIlc_fMCScvDXCG1ghYD6CsPl5xRKXN5u7MORXPF5Sv1Bju_iZv2nP4GhNahwwvXytCSfeOQigFCDy9MroLjX2NPICBA1vQM0ATCKtFj947cJNEpkwd3JWKRkwnoyJWA2N0PIRgVCnlYpcteJB4PhP7SnasBMXEm_w3_4L5Bw4gY_LY-k-bXdpZytQ3kCfMS5f-6vdh8m_YagDtKwm-bAuQC7KVdbklKYDApOF5TdFDsRmne2_jlnX3d3zY5vx6CC4Wh2uOg4KSc9FOuWJSUSpaIJNaRVXphIEpWe4b2KXNGcXMvSqyEm2Spp0gs7V6O4_TaddAno2DqI35-6xBCWFwG2FY8C6Lj1xHQ7v-cdFCFwpD-cw1wdAoQsYHqDVGkw4dkAMkMN-sV_SUWWXmQpgAqRFOQX9dHS6kIzdviEYYHwDtBDy4Hq8nNf59OloMkmaK4nkokY1jlM4m40gKKluaw8-Dh7KCZk4TynLrMdBE5e_j3QmjaAkxLpzBk8lGVsH2IYbqD0Sx79wwvjY-HcX9ic3zDX3rbVKA69YArDXz3GjVKjvsMJ72Hi9iS3J5wd1VxMH0T2PCsByU847WL1lFZ2m9oSHvtqrKNtKg3ED_yrJOgi4UMOM7ctGNGGzOsLRcTfMJXp1eKuu8EgweNY3BZx8tGb4gyEr6KZIy0lVE66hM1RtH9hmG4fuNLgYzGS2PEZCFDp2_2cYGlwwGEU9VB-S5CHwFyyp0CcbqxUVrgY7V85bhn3H1wLPjobosLeFilpOpLmjbuawDai7OgB3ot9cNi0QKMYTJylU-LBe43thNXFq-Nk5LypUB0i5UbPH2rFoBZnaXO-30FDZVGqKX4ZGbwfJgQ4lzQYYwPJywsxLsTNRspTp-hIC0iOcGl87sTsLh6ms4FGYKDzbsgRS4HYd7Srav8GKe6MUcAC1wkWIRHFiUxH-MZzKcKiqKOowYd1VD7OvdTSWW3PSFNH1WHwvMaQaBaknlrPCGEUfD-1hyct_h682dXCaygU6LKyWTc5Fq0GPHMpPL1f6oH-gRk66sabgBM3RtYBKGDLOGcrdn5vZtJHZRCzw84hr-SCTMEX7DbBCYRYVOE__1MFYDYWYpIGySNUmwwY1fcx1TmVboSI9dTBKAZhCVx9farldYSz-H5_BL_YXTG8G1hA6FxS0i1XQ5HrreTx1kYZolordhDvFU62SU-EaVXq2OiFsSr6urG2xvgh3REAtJnIfyOO7pILSw9ZgT0jUdSw0IXD97PQsUQvGBlh85yok90u5fAdssQ9EgWoEDIhdC7-Aij1kDDNrca6AQzS455orDjH8RrS1soymYyqazTWhL05wUPlH8m8wMdPUfEYMRYA_NYvV97dxE74b9S0AMnXTViSDLj0Zx81s4ZQOgahuuWaQfxrkrpY39gg9x2tEUp4vgUWstm1ADVPacnXFTtqVHCbsx5DMEgULjO4ozbMGGRBlMyKzhU5LS1gl9wvOTeVQGc6zzvZq9k5C6E8BaqAj6WaQLwP-mMVcQ1SUhxWne_UkMOHTMrCMeYWvsCEg-7TIiIhvKdyS0nH88nTCgofGXRDnz7xQbaYnr_O8r2o2uwIVED9Rc7xO5bXW_azUyK1cDdzSE8ixCSlJFp_-EWH5G0vdgzUooV2ZWwSGTZ-X97vTFMdAwfrD3jMw15nqNVb06hajileyXMq0XG2urYbzuIyzZaw1FVWJsNWij7FD1ENyC3d6fNGE-UH64GsJveyi588oNNWrzUc14iwng2ic5XK-Hh9CynPcD3vSmte2emo-V_nyaN3AqkPCHrv1_u4Vj1f_2Uq5uOteMeJyjhNDo-9AGXCmGclatZiafjKEWehFds5rw-Z-mL6E8Nnb1bTo4x2xF0wltuiWzNntomMHMjJqHRMgNcWP5mq2VuGRUHS-LYQrL-7BQW4Gdie0ktQL7df-0g12f9Cqe6SQJQyWlRR73ytX8b3EnWYmq2D0Fptkw-46YOGeuu6qDrY5LeTkCQkB7dgdakMsEBuWdGy2QGwgwVL0cuUIFwNCtXpj3TFR2PScKwv70LJpnFm87NagUtAnKSHWJ14hAUf6QJVuVhDIxP260U_aWdr-VaIB_pmdS2oOaBEOZYJjOw9NJwI-jsdSLBlO3a43mz9Qg4xEhDOT7jPZTBDIcch8TDf4UxM-kGtEkzlYLzE1UdvYwYW5uGhYprZBYdxcWJIHMLT2eNajgeqJYEaFjVpOdq0Vpoook-hIG3o1gLDUdXY4qhqnQRjtJYw9B25VuK3kOTKGXIHKY5vR8zNKyQRsHyq1NPqtCTQYiKKlJDWtquf-x_xENseexGOoizhTXipsKzJZspwVw9tL1RqR2CMS8iQhzdgHg94wP6vnKmxnziuoP4zBYMBfjnWdyhXN2HCeBePD1Gyghd-zlOq9yIwpvR2PRlysfwFpUZTNg1RIwwby7MmHz9A3XLoYDGUjh2_qxE6JBF5l9t--9jHFqsI3gIMNu9ZQjLg8ISHzOP7LpD7pdpZgF7q6Dez8GM9J2423QAGqLdwnFolmsvR1CNdZ1no4-ZsGLYF2etmUvN-_V--KtWeN8uzi8vgOdtyiLbyWK80roZqEtX_ZAqSun4WzGVpVnwACI2YdrnRc3V97FS6jN-uq3L-XexGuJudfo5O4w2rWY3jhTfYTh4_KZ7duIvB7OjxfNEVHvj0EGwHabkPEsekDSXf8Yv8GUbSbouBPFTDKjBTYKyQlUBTCL3A-4f_la9EVLKkGoFxcNoGs5r6THSHT5iBzqU3eps86Clc1L5Qf5vYj0zZnnGsVLen5Tydc7cK9apw-_vhOcsSZoRRUudpnzsU6tuNU6cYQn5yflHOUeEDWMN2OTFpN0my6VTNsr6ak1alTbktMyjuUVC0u08io1-tG57Wbq7XiImAN_W47K0Cm8-qTIC4m7MLg7VBB5ER8j911LZ2-YR6VJu4BZO0LwP2OBJO0oVkPVLL1cvQKU4F_RfAuCYjnuGScRNeq2SCUSd2Ofn1EWNGAYXXVYQ02ktIvayyJ5_gttP12-MtMx6NTCh6PuqtvtRkgUCBdRO5amGQBuNn5IVaQ37T5yvjNAwPjIiXFL4yw37WV0GzSAyf4AHWU-d4bIxlMGLe2zBxxAO4DigE-Uvq7V0N3zIytQiKZfjwkl3qX7JQfs-Wo-cOg78iGzaY5vjjFF-5nLUkpMO9PacKpEgGdiVW4jCQVC8FG_JSFKHmuSzZpJ3Ylapiki2KIFMxbGevgNFUQfeyYELfty1u5D6wNIYWFVH99hwX8KliR2naoFbKq-oJEREAaie3GO9m2vCW1p08mNiLDYm5jd4PXlKvhC-cLFAd9634fg8c-S1XVK6A6DgfCGPnBJVcg_kFdwEFi2DZ1uXnAJCOd3VJsGCy5-T_gMBPjF42WPnRI28BlGTFjxLDPhiRDMFEb6LqmIl6ayXK4xBtemr-QVEQPMfVV6Hr3skLNggGmE3c1E-Mh2T1P1QXxIU-QpdgLAxizcmY7QAF9r8F41cLV4wN7B9-IAyNZumw360LMMN6ElwSkliSAwiP-pZP2hHz9MS_m5s7h74HmPKXw5vQ3THCa4ldZd9yKZF520uq7cldQtUSaDa7GUC8TYealiI8vLFLT7qaVSBXXBpM-H0K_amwzjB2h30eG6Igzw-A10aM5Xoej8KuFGZhodxnLYV2WQ88rgIz0nhuIfJVzd6fl2x7gZAFuzTYPPczWHcVHRY6DJLpwbyBGTi7eyM_-Rd5QyFwl-0e_Ub_tZGFSBI86uJWJ8lk9duz0wYDtkVQ7yreki6aEwMb6cAWSzVe0ssESnTZPTndAOY1vIWFoYl0fHyvJiEoXR6QlxLdmguIhL2LgMEwC5PMNhZsfYR4sQTpAB2SzX1hiFmcEB4C_-PApzPVQcu3bOBm9wkNXzGNp_o0VTvPfa6zHQjHkGvcseK9G4Aqe3Ynhj6mBHJtB2UiBZI2NMs0OTOPGinWMxq0UaG60QjiqVex6wgYG_KXsFEzFhAz2SAOdUM7t6rLu5QVy-13qW1CoR7hvcbIzc4KkShWAxFsgMAmDiKAYBK3WtjQs3FIWvh0zwaLg3z0VuRotMnutrOAlXmlFQY80ht2xtrMhKc3KuMM2YCnMQdZOLA_I1ZgLjfeUtZyJCXMjuyC-dAJNgISOIduha9xpmK6Lmj76mKsRXWXvLdnyaxnEmmLCytPANRQK33QGm5Iuic0s4ENeztCpUHB2pK4BeJLXPyIMspGaoGt6Ebh8Yg8f6tbiXseb418sSCpDLZckFR3PIqqBy_aq-MlwbipGJOQxQUu-eoj6LAoytZiFJPXdt0DjcYaV3bbmJCjQhoSV_nkUhva0lxqeCmiucrKKs1exP-qMLkCglrFfwq1j8-PbUHCPqZ8HkRLQrV1rq5cQ8EXvRAXyqgTADSgjtnxehwtI63qxZKB4ISRW58Oaj3d7s4DDyY8xH-gLiKTVNLz4F-yJiqgUg0sURPGWpBA_RCK5v463RBmlrsdU1nSFRsgMj5GIeo2nAh90esRuemE7f8hhE0D38gT9pgSsFlSJvACw3RrYSRFWuTpJc1j1t0qTPLVcEF9n19P-STY05QvPX4EPV5PxvHeNlagX22e9MwnvToVwe6v2JT9rNFEOc_o-j2hR5tPN3qGMUryJlyJPEfia4NwhODI0pUxDHKGOHEf42eP7U83qX36HdpuJ69Xk2TLlhHoytAeSqTfqKdjDaZzYsbgITZXmy6FWPRcUC6IGMYbyG88Eeo-qEh3XIkM654CYu35yCaXnTrbx-ZkvGNZ7Mxuy3jovyTz3bnhAykNIVrI5_HO1cIgiHVm28w68P1c93NY_d7oNGyMjBJaIXW2k5Y7JDAELIvnCWqWVt2k7n4begSzeJS-fOSj4EvIRhVArFS-_jLtFDgEHJV3ONipNdx70Z1bhBeqWbp18k7q6ehPMjeVsyXG1UsnpgI7dBs8lvzPe6kSy1Qnrzk_jQsyozS_MNufn_lGAt8tlazQrzyk6peXyyFMIDVSVKBhmQH-Ygq6Yhh_WcupNbGMRLKrNjcMYqqxLy1jT51V96I7-AgGuSI9sKb-LncdSif50DQHgyc2GS9So\",\"message\":\"69ccfcb78c8c7b0cf42042f89775e3c7a16c5ce366d0e8b20b74196b26e22905350a6e4e9b9e25d6a2136b7e39d4bc5238f7f05bbaa80a8287849bf1ab5d631b\",\"notBefore\":1585540530000,\"transactionType\":\"BLOCK_HASH\",\"transactionHash\":\"uXcfM_bc7GJpTd7CEiLQ55-G-mjvyntrq4nit2h_IJQ.\",\"epoch\":1,\"slot\":1984}";
@@ -92,17 +100,357 @@ public class WalletTest {
             assertTrue(tbox.isValid());
         }
     }
+    
+    @Test
+    public void stabilityTestFailure() {
+        for (int i = 0; i < staticJsons.length; i++) {
+            String js = staticJsons[i];
+            TransactionBox tbox = TkmWallet.verifyTransactionIntegrity(js.substring(i, js.length() - 30));
+            assertFalse(tbox.isValid());
+        }
+    }
+    
+    @Test
+    public void stabilityTestFailureInternalTransactionBeanPay() throws WalletException, TransactionNotYetImplementedException {
+        //red < 0
+        for (int j = 0; j < 5; j++) {
+            for (int k = 0; k < 2; k++) {
+                for (String[] mess : messages) {
+                    for (KeyContexts.WalletCypher walletCypher : walletsFrom.keySet()) {
+
+                        log.info("Testing wallet type "
+                                + walletCypher
+                                + " whith message "
+                                + mess[0]
+                                + " with from "
+                                + (j * k)
+                                + " with to "
+                                + (j + k)
+                        );
+                        InternalTransactionBean itb = BuilderITB.getInternalTransactionBean(
+                                KeyContexts.TransactionType.PAY,
+                                walletsFrom.get(walletCypher).getPublicKeyAtIndexURL64(j * k),
+                                walletsTo.get(walletCypher).getPublicKeyAtIndexURL64(j + k),
+                                null,
+                                BigInteger.ONE.negate(),
+                                mess[1]);
+
+                        assertNotNull(itb);
+
+                        Exception e = null;
+                        try {
+                            TransactionBean tb = TkmWallet.createGenericTransaction(
+                                    itb,
+                                    walletsFrom.get(walletCypher),
+                                    j * k
+                            );
+                        } catch (Exception ex) {
+                            e = ex;
+                        }
+
+                        assertNotNull(e);
+
+                    }
+                }
+            }
+        }
+
+        //green < 0
+        for (int j = 0; j < 5; j++) {
+            for (int k = 0; k < 2; k++) {
+                for (String[] mess : messages) {
+                    for (KeyContexts.WalletCypher walletCypher : walletsFrom.keySet()) {
+
+                        log.info("Testing wallet type "
+                                + walletCypher
+                                + " whith message "
+                                + mess[0]
+                                + " with from "
+                                + (j * k)
+                                + " with to "
+                                + (j + k)
+                        );
+                        InternalTransactionBean itb = BuilderITB.getInternalTransactionBean(
+                                KeyContexts.TransactionType.PAY,
+                                walletsFrom.get(walletCypher).getPublicKeyAtIndexURL64(j * k),
+                                walletsTo.get(walletCypher).getPublicKeyAtIndexURL64(j + k),
+                                BigInteger.ONE.negate(),
+                                null,
+                                mess[1]);
+
+                        assertNotNull(itb);
+
+                        Exception e = null;
+                        try {
+                            TransactionBean tb = TkmWallet.createGenericTransaction(
+                                    itb,
+                                    walletsFrom.get(walletCypher),
+                                    j * k
+                            );
+                        } catch (Exception ex) {
+                            e = ex;
+                        }
+
+                        assertNotNull(e);
+
+                    }
+                }
+            }
+        }
+
+        //red = 0 AND green = 0
+        for (int j = 0; j < 5; j++) {
+            for (int k = 0; k < 2; k++) {
+                for (String[] mess : messages) {
+                    for (KeyContexts.WalletCypher walletCypher : walletsFrom.keySet()) {
+
+                        log.info("Testing wallet type "
+                                + walletCypher
+                                + " whith message "
+                                + mess[0]
+                                + " with from "
+                                + (j * k)
+                                + " with to "
+                                + (j + k)
+                        );
+                        InternalTransactionBean itb = BuilderITB.getInternalTransactionBean(
+                                KeyContexts.TransactionType.PAY,
+                                walletsFrom.get(walletCypher).getPublicKeyAtIndexURL64(j * k),
+                                walletsTo.get(walletCypher).getPublicKeyAtIndexURL64(j + k),
+                                BigInteger.ZERO,
+                                BigInteger.ZERO,
+                                mess[1]);
+
+                        assertNotNull(itb);
+
+                        Exception e = null;
+                        try {
+                            TransactionBean tb = TkmWallet.createGenericTransaction(
+                                    itb,
+                                    walletsFrom.get(walletCypher),
+                                    j * k
+                            );
+                        } catch (Exception ex) {
+                            e = ex;
+                        }
+
+                        assertNotNull(e);
+
+                    }
+                }
+            }
+        }
+
+        //green = null AND red = 0
+        for (int j = 0; j < 5; j++) {
+            for (int k = 0; k < 2; k++) {
+                for (String[] mess : messages) {
+                    for (KeyContexts.WalletCypher walletCypher : walletsFrom.keySet()) {
+
+                        log.info("Testing wallet type "
+                                + walletCypher
+                                + " whith message "
+                                + mess[0]
+                                + " with from "
+                                + (j * k)
+                                + " with to "
+                                + (j + k)
+                        );
+                        InternalTransactionBean itb = BuilderITB.getInternalTransactionBean(
+                                KeyContexts.TransactionType.PAY,
+                                walletsFrom.get(walletCypher).getPublicKeyAtIndexURL64(j * k),
+                                walletsTo.get(walletCypher).getPublicKeyAtIndexURL64(j + k),
+                                null,
+                                BigInteger.ZERO,
+                                mess[1]);
+
+                        assertNotNull(itb);
+
+                        Exception e = null;
+                        try {
+                            TransactionBean tb = TkmWallet.createGenericTransaction(
+                                    itb,
+                                    walletsFrom.get(walletCypher),
+                                    j * k
+                            );
+                        } catch (Exception ex) {
+                            e = ex;
+                        }
+
+                        assertNotNull(e);
+
+                    }
+                }
+            }
+        }
+
+        //red = null AND green = 0
+        for (int j = 0; j < 5; j++) {
+            for (int k = 0; k < 2; k++) {
+                for (String[] mess : messages) {
+                    for (KeyContexts.WalletCypher walletCypher : walletsFrom.keySet()) {
+
+                        log.info("Testing wallet type "
+                                + walletCypher
+                                + " whith message "
+                                + mess[0]
+                                + " with from "
+                                + (j * k)
+                                + " with to "
+                                + (j + k)
+                        );
+                        InternalTransactionBean itb = BuilderITB.getInternalTransactionBean(
+                                KeyContexts.TransactionType.PAY,
+                                walletsFrom.get(walletCypher).getPublicKeyAtIndexURL64(j * k),
+                                walletsTo.get(walletCypher).getPublicKeyAtIndexURL64(j + k),
+                                BigInteger.ZERO,
+                                null,
+                                mess[1]);
+
+                        assertNotNull(itb);
+
+                        Exception e = null;
+                        try {
+                            TransactionBean tb = TkmWallet.createGenericTransaction(
+                                    itb,
+                                    walletsFrom.get(walletCypher),
+                                    j * k
+                            );
+                        } catch (Exception ex) {
+                            e = ex;
+                        }
+
+                        assertNotNull(e);
+
+                    }
+                }
+            }
+        }
+
+        //red = null AND green = null
+        for (int j = 0; j < 5; j++) {
+            for (int k = 0; k < 2; k++) {
+                for (String[] mess : messages) {
+                    for (KeyContexts.WalletCypher walletCypher : walletsFrom.keySet()) {
+
+                        log.info("Testing wallet type "
+                                + walletCypher
+                                + " whith message "
+                                + mess[0]
+                                + " with from "
+                                + (j * k)
+                                + " with to "
+                                + (j + k)
+                        );
+                        InternalTransactionBean itb = BuilderITB.getInternalTransactionBean(
+                                KeyContexts.TransactionType.PAY,
+                                walletsFrom.get(walletCypher).getPublicKeyAtIndexURL64(j * k),
+                                walletsTo.get(walletCypher).getPublicKeyAtIndexURL64(j + k),
+                                null,
+                                null,
+                                mess[1]);
+
+                        assertNotNull(itb);
+
+                        Exception e = null;
+                        try {
+                            TransactionBean tb = TkmWallet.createGenericTransaction(
+                                    itb,
+                                    walletsFrom.get(walletCypher),
+                                    j * k
+                            );
+                        } catch (Exception ex) {
+                            e = ex;
+                        }
+
+                        assertNotNull(e);
+
+                    }
+                }
+            }
+        }
+
+    }
+    
+    @Test
+    public void testPayTransaction() {
+        for (KeyContexts.TransactionType trxType : trxTypes) {
+            log.info("" + trxType);
+            for (int j = 0; j < 5; j++) {
+                for (int k = 0; k < 2; k++) {
+                    for (int i = 0; i < messages.length; i++) {
+                        String[] mess = messages[i];
+
+                        for (KeyContexts.WalletCypher walletCypher : walletsFrom.keySet()) {
+                            try {
+                                log.info("Testing wallet type "
+                                        + walletCypher
+                                        + " whith message "
+                                        + mess[0]
+                                        + " with from "
+                                        + (j * k)
+                                        + " with to "
+                                        + (j + k)
+                                );
+
+                                //try {
+                                InternalTransactionBean itb = BuilderITB.getInternalTransactionBean(
+                                        trxType,
+                                        walletsFrom.get(walletCypher).getPublicKeyAtIndexURL64(j * k),
+                                        walletsTo.get(walletCypher).getPublicKeyAtIndexURL64(j + k),
+                                        tkgAmount,
+                                        null,
+                                        mess[1]);
+
+                                assertNotNull(itb);
+
+                                TransactionBean tb = TkmWallet.createGenericTransaction(
+                                        itb,
+                                        walletsFrom.get(walletCypher),
+                                        j * k
+                                );
+
+                                assertNotNull(tb);
+
+                                TransactionBox tbox = TkmWallet.verifyTransactionIntegrity(tb);
+
+                                assertNotNull(tbox);
+
+                                assertTrue(tbox.isValid());
+                                //json
+//                                log.info(tbox.getTransactionJson());
+
+                            } //TransactionGenerator.generatePayToGreen(from, to, BigInteger.ONE)
+                            catch (TransactionNotYetImplementedException | WalletException ex) {
+                                //non possono eds
+                                if (trxType.equals(KeyContexts.TransactionType.BLOB) &&
+                                        TkmTextUtils.isNullOrBlank(mess[1])) {
+                                    assertNotNull(ex);
+                                } else {
+                                    assertNull(ex);
+                                }
+
+                                log.debug(ex.getLocalizedMessage());
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+    }
 
     /**
      * Test of main method, of class Wallet.
      */
-    @Test
+    //@Test
     public void testMain() {
-        System.out.println("main");
+        log.info("main");
         String[] args = null;
         Wallet.main(args);
         // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        //fail("The test case is a prototype.");
     }
 
 }

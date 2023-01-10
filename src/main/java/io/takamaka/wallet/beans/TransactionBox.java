@@ -32,7 +32,7 @@ public class TransactionBox implements Serializable, Comparable<TransactionBox> 
         return singleInclusionTransactionHash;
     }
 
-    protected void setSingleInclusionTransactionHash(String singleInclusionTransactionHash) {
+    public void setSingleInclusionTransactionHash(String singleInclusionTransactionHash) {
         this.singleInclusionTransactionHash = singleInclusionTransactionHash;
     }
 
@@ -40,7 +40,7 @@ public class TransactionBox implements Serializable, Comparable<TransactionBox> 
         return transactionJson;
     }
 
-    protected void setTransactionJson(String transactionJson) {
+    public void setTransactionJson(String transactionJson) {
         this.transactionJson = transactionJson;
     }
 
@@ -48,7 +48,7 @@ public class TransactionBox implements Serializable, Comparable<TransactionBox> 
         return tb;
     }
 
-    protected void setTb(TransactionBean tb) {
+    public void setTb(TransactionBean tb) {
         this.tb = tb;
     }
 
@@ -56,7 +56,7 @@ public class TransactionBox implements Serializable, Comparable<TransactionBox> 
         return itb;
     }
 
-    protected void setItb(InternalTransactionBean itb) {
+    public void setItb(InternalTransactionBean itb) {
         this.itb = itb;
     }
 
@@ -64,7 +64,7 @@ public class TransactionBox implements Serializable, Comparable<TransactionBox> 
         return valid;
     }
 
-    protected void setValid(boolean valid) {
+    public void setValid(boolean valid) {
         this.valid = valid;
     }
 

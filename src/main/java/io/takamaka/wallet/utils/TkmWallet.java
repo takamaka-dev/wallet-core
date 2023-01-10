@@ -5,14 +5,28 @@
 package io.takamaka.wallet.utils;
 
 import io.takamaka.wallet.InstanceWalletKeystoreInterface;
+import io.takamaka.wallet.TkmCypherProviderBCED25519;
+import io.takamaka.wallet.TkmCypherProviderBCQTESLAPSSC1Round1;
+import io.takamaka.wallet.TkmCypherProviderBCQTESLAPSSC1Round2;
+import io.takamaka.wallet.beans.InternalBlockBean;
 import io.takamaka.wallet.beans.InternalTransactionBean;
+import io.takamaka.wallet.beans.TkmCypherBean;
 import io.takamaka.wallet.beans.TransactionBean;
+import io.takamaka.wallet.beans.TransactionBox;
+import io.takamaka.wallet.beans.TransactionSyntaxBean;
+import io.takamaka.wallet.exceptions.HashCompositionException;
+import io.takamaka.wallet.exceptions.InclusionHashCreationException;
+import io.takamaka.wallet.exceptions.NullInternalTransactionBeanException;
 import io.takamaka.wallet.exceptions.TransactionCanNotBeCreatedException;
+import io.takamaka.wallet.exceptions.TransactionCanNotBeSignedException;
+import io.takamaka.wallet.exceptions.WalletException;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
  * @author Giovanni Antino <giovanni.antino at takamaka.io>
  */
+@Slf4j
 public class TkmWallet {
 
     /**
@@ -59,8 +73,7 @@ public class TkmWallet {
                     break;
                 default:
                     signatureBean.setValid(false);
-                    //signatureBean.setEx("UNKNOWN CYPHER");
-                    F.b("UNKNOWN CYPHER");
+                    log.error("UNKNOWN CYPHER");
             }
             tb.setSignature(signatureBean.getSignature());
             TransactionSyntaxBean transactionBeanValid = TransactionUtils.isTransactionBeanValid(tb);
@@ -71,8 +84,7 @@ public class TkmWallet {
             return tb;
 
         } catch (NullInternalTransactionBeanException | HashCompositionException | WalletException ex) {
-            Log.logStacktrace(Level.SEVERE, ex);
-            //ex.printStackTrace();
+            log.error("Error generating transaction", ex);
             throw new TransactionCanNotBeCreatedException(ex);
         }
 
@@ -111,14 +123,14 @@ public class TkmWallet {
                 default:
                     signatureBean.setValid(false);
                     //signatureBean.setEx("UNKNOWN CYPHER");
-                    F.b("UNKNOWN CYPHER");
+                    log.error("UNKNOWN CYPHER");
             }
 
             tb.setSignature(signatureBean.getSignature());
             return tb;
 
         } catch (WalletException ex) {
-            Log.logStacktrace(Level.SEVERE, ex);
+            log.error("Error creating transaction", ex);
             throw new TransactionCanNotBeCreatedException(ex);
         }
 
@@ -150,11 +162,10 @@ public class TkmWallet {
             default:
                 tcb = new TkmCypherBean();
                 tcb.setValid(false);
-                F.b("lol 75");
-                Log.log(Level.WARNING, "CYPHER NOT IMPLEMENTED");
+                log.error("CYPHER NOT IMPLEMENTED");
         }
         if (!tcb.isValid()) {
-            F.rb(tb.getWalletCypher() + "");
+            log.error(tb.getWalletCypher() + "");
         }
         return tcb;
     }
@@ -196,20 +207,20 @@ public class TkmWallet {
                         result.setTransactionJson(transactionJson);
                         result.setValid(true);
                     } catch (InclusionHashCreationException ex) {
-                        Log.logStacktrace(Level.WARNING, ex);
+                        log.error("Transaction verification error", ex);
                     }
                 }
                 cyBean = verifyHashIntegrity(itb, cyBean);
                 result.setValid(cyBean.isValid() & signerFieldsVerification & transactionBeanValid.isValidSyntax());
                 if (cyBean.getEx() != null) {
                     cyBean.getEx().printStackTrace();
-                    F.b("INVALID!!");
+                    log.error("INVALID!!");
                 }
             } else {
                 if (cyBean != null && cyBean.getEx() != null) {
                     cyBean.getEx().printStackTrace();
                 }
-                F.b("INVALID!!");
+                log.error("INVALID!!");
             }
         }
         return result;
@@ -231,8 +242,8 @@ public class TkmWallet {
                 }
             }
         } catch (NullInternalTransactionBeanException | HashCompositionException ex) {
-            ex.printStackTrace();
             cyBean.setEx(ex);
+            log.error("Hash verification error", ex);
         }
         return cyBean;
     }
@@ -279,12 +290,10 @@ public class TkmWallet {
                 case COINBASE:
                     return itb.getTo().equals(tb.getPublicKey());
                 case BLOCK:
-                    F.rb("NOT IMPLEMENTED");
-                    Log.log(Level.SEVERE, "NOT IMPLEMENTED");
+                    log.error("NOT IMPLEMENTED");
                 case UNDEFINED:
                 default:
-                    F.rb("NOT YET IMPLEMENTED");
-                    Log.log(Level.SEVERE, "NOT YET IMPLEMENTED");
+                    log.error("NOT YET IMPLEMENTED");
                     return false;
             }
         }
