@@ -32,8 +32,18 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.takamaka.wallet.beans.EncKeyBean;
+import io.takamaka.wallet.beans.InternalBlockBean;
+import io.takamaka.wallet.beans.InternalTransactionBean;
 import io.takamaka.wallet.beans.KeyBean;
 import io.takamaka.wallet.beans.PublicKeyBean;
+import io.takamaka.wallet.beans.TransactionBean;
+import io.takamaka.wallet.exceptions.HashAlgorithmNotFoundException;
+import io.takamaka.wallet.exceptions.HashCompositionException;
+import io.takamaka.wallet.exceptions.HashEncodeException;
+import io.takamaka.wallet.exceptions.HashProviderNotFoundException;
+import io.takamaka.wallet.exceptions.InclusionHashCreationException;
+import io.takamaka.wallet.exceptions.NullInternalTransactionBeanException;
+import org.apache.commons.lang3.RandomStringUtils;
 //import com.fasterxml.jackson.databind.ObjectWriter;
 //import com.fasterxml.jackson.databind.module.SimpleModule;
 
@@ -74,6 +84,9 @@ public class TkmTextUtils {
 //        simpleModule.addDeserializer(ElasticObjectBean.class, new ISElasticObjectDeserializer());
         return simpleModule;
     }
+
+    public static final TypeReference<ArrayList<TransactionBean>> type_ArrayList_TransactionBean = new TypeReference<ArrayList<TransactionBean>>() {
+    };
 
     public static final ObjectMapper getJacksonMapper() {
         ObjectMapper mapper = new ObjectMapper();
@@ -139,14 +152,179 @@ public class TkmTextUtils {
             return null;
         }
     }
-    
+
     public static final PublicKeyBean publicKeyBeanFromJson(String publickeyBeanJson) {
         try {
             return getJacksonMapper().readValue(publickeyBeanJson, PublicKeyBean.class);
         } catch (JsonProcessingException ex) {
-             log.error("PublicKeyBean deserialization error", ex);
+            log.error("PublicKeyBean deserialization error", ex);
             return null;
         }
     }
 
+    public static final String toJson(InternalTransactionBean itb) {
+        try {
+            return getJacksonMapper().writeValueAsString(itb);
+        } catch (JsonProcessingException ex) {
+            log.error("InternalTransactionBean serialization error", ex);
+            return null;
+        }
+    }
+
+    public static final InternalTransactionBean internalTransactionBeanFromJson(String jsonString) {
+        try {
+            return getJacksonMapper().readValue(jsonString, InternalTransactionBean.class);
+        } catch (JsonProcessingException ex) {
+            log.error("InternalTransactionBean deserialization error", ex);
+            return null;
+        }
+    }
+
+    public static final String toJson(InternalBlockBean itb) {
+        try {
+            return getJacksonMapper().writeValueAsString(itb);
+        } catch (JsonProcessingException ex) {
+            log.error("InternalTransactionBean serialization error", ex);
+            return null;
+        }
+    }
+
+    public static final InternalBlockBean internalBlockBeanFromJson(String jsonString) {
+        try {
+            return getJacksonMapper().readValue(jsonString, InternalBlockBean.class);
+        } catch (JsonProcessingException ex) {
+            log.error("InternalTransactionBean deserialization error", ex);
+            return null;
+        }
+    }
+
+    public static final String toJson(ArrayList<TransactionBean> listTB) {
+        try {
+            return getJacksonMapper().writeValueAsString(listTB);
+        } catch (JsonProcessingException ex) {
+            log.error("TransactionBean list serialization error.");
+            return null;
+        }
+    }
+
+    public static final ArrayList<TransactionBean> getTransactionBeanListFromJson(String jsonString) {
+        try {
+            return getJacksonMapper().readValue(jsonString, type_ArrayList_TransactionBean);
+        } catch (JsonProcessingException ex) {
+            log.error("TransactionBean list deserialization error.");
+            return null;
+        }
+    }
+    
+    public static final String toJson(TransactionBean tb) {
+        try {
+            return getJacksonMapper().writeValueAsString(tb);
+        } catch (JsonProcessingException ex) {
+            log.error("TransactionBean serialization error.");
+            return null;
+        }
+    }
+
+    public static final TransactionBean transactionBeanFromJson(String transactionBeanJson) {
+        try {
+            return getJacksonMapper().readValue(transactionBeanJson, TransactionBean.class);
+        } catch (JsonProcessingException ex) {
+            log.error("TransactionBean deserialization error.");
+            return null;
+        }
+    }
+
+    /**
+     * function for sorting hash
+     *
+     * @param input
+     * @return
+     */
+    public static final String getSortingString(String input) {
+        return new BigInteger(1, input.getBytes(FixedParameters.CHARSET)).toString();
+    }
+
+    /**
+     * ITB Hash. It puts all the itb fields together, than it generates the hash
+     * code
+     * <br>
+     * StringBuilder sb = new StringBuilder();
+     * <br>
+     * sb.append(itb.getFrom());<br>
+     *
+     * sb.append(itb.getTo());<br>
+     *
+     * sb.append(itb.getMessage());<br>
+     *
+     * sb.append(itb.getNotBefore().getTime());<br>
+     *
+     * sb.append(itb.getRedValue());<br>
+     *
+     * sb.append(itb.getGreenValue());<br>
+     *
+     * sb.append(itb.getTransactionType().name());<br>
+     *
+     * sb.append(itb.getEpoch());<br>
+     *
+     * sb.append(itb.getSlot());<br>
+     *
+     * String hash = TkmSignUtils.Hash256(sb.toString());<br>
+     *
+     * @param itb
+     * @return String the hash encoded
+     * @throws NullInternalTransactionBeanException
+     * @throws HashCompositionException
+     */
+    public static final String internalTransactionBeanHash(InternalTransactionBean itb) throws NullInternalTransactionBeanException, HashCompositionException {
+        try {
+            if (itb == null) {
+                throw new NullInternalTransactionBeanException("null itb");
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.append(itb.getFrom());
+            sb.append(itb.getTo());
+            sb.append(itb.getMessage());
+            sb.append(itb.getNotBefore().getTime());
+            sb.append(itb.getRedValue());
+            sb.append(itb.getGreenValue());
+            sb.append(itb.getTransactionType().name());
+            sb.append(itb.getEpoch());
+            sb.append(itb.getSlot());
+//            F.y(sb.toString());
+            String hash = TkmSignUtils.Hash256(sb.toString());
+            return hash;
+        } catch (HashEncodeException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
+            log.error("internal transaction bean hash generation exception", ex);
+            throw new HashCompositionException(ex);
+        }
+    }
+
+    /**
+     * Transaction Bean Random string generator
+     *
+     * @return a 4 digit alphanumeric random string
+     */
+    public static final String generateWalletRandomString() {
+        return RandomStringUtils.randomAlphanumeric(4);
+    }
+    
+    /**
+     * Hash used inside block for transaction identification
+     *
+     * @param itbHash
+     * @param addr
+     * @param sig
+     * @param random
+     * @param walletCypher
+     * @return
+     * @throws InclusionHashCreationException
+     */
+    public static final String singleTransactionInclusionHash(String itbHash, String addr, String sig, String random, String walletCypher) throws InclusionHashCreationException {
+        try {
+            return TkmSignUtils.Hash256(itbHash + addr + sig + random + walletCypher);
+        } catch (HashEncodeException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
+            log.error("Error creating SITH", ex);
+            throw new InclusionHashCreationException(ex);
+        }
+    }
 }

@@ -279,7 +279,7 @@ public final class KeyContexts {
         S_INSTALL_JAR,
         S_REGISTER_ADDRESS
     }
-
+    
     /**
      * define the constants for coin colors
      */
