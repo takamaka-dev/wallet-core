@@ -74,7 +74,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
     }
 
     /**
-     * Constructor for InstanceWalletKeyStoreBCED25519.
+     * Constructor for InstanceWalletKeyStoreBCQTESLAPSSC1Round1.
      *
      * It initializes the collections for key pairs and public keys, and calls
      * initWallet method to initialize or load an existing wallet using a
@@ -103,7 +103,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
     }
 
     /**
-     * Constructor for InstanceWalletKeyStoreBCED25519.
+     * Constructor for InstanceWalletKeyStoreBCQTESLAPSSC1Round1.
      *
      * It initializes the collections for key pairs and public keys, and calls
      * initWallet method to initialize or load an existing wallet
@@ -132,7 +132,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
     }
 
     /**
-     * Constructor for InstanceWalletKeyStoreBCED25519.
+     * Constructor for InstanceWalletKeyStoreBCQTESLAPSSC1Round1.
      *
      * It initializes the collections for key pairs and public keys, and calls
      * initWallet method to initialize or load an existing wallet
