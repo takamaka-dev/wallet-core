@@ -37,8 +37,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -55,17 +53,17 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class WalletHelper {
 
-    public static InstanceWalletKeystoreInterface readWallet(String filename, String password) throws InvalidCypherException, FileNotFoundException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnlockWalletException {
+    public static InstanceWalletKeystoreInterface readWallet(String filename, String password) throws InvalidCypherException, FileNotFoundException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnlockWalletException, WalletException {
         Path pt = Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), filename + DefaultInitParameters.WALLET_EXTENSION);
         return readWalletInternal(filename, pt, password);
     }
 
-    public static InstanceWalletKeystoreInterface readWalletRecoveryGui(String filename, String password) throws InvalidCypherException, FileNotFoundException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnlockWalletException {
+    public static InstanceWalletKeystoreInterface readWalletRecoveryGui(String filename, String password) throws InvalidCypherException, FileNotFoundException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnlockWalletException, WalletException {
         Path pt = Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), filename);
         return readWalletInternal(filename, pt, password);
     }
 
-    private static InstanceWalletKeystoreInterface readWalletInternal(String filename, Path pt, String password) throws InvalidCypherException, FileNotFoundException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnlockWalletException {
+    private static InstanceWalletKeystoreInterface readWalletInternal(String filename, Path pt, String password) throws InvalidCypherException, FileNotFoundException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnlockWalletException, WalletException {
 
         KeyBean key = readKeyFile(pt, password);
         switch (key.getCypher()) {
@@ -263,7 +261,7 @@ public class WalletHelper {
         return SeedGenerator.verifySeedWords(words);
     }
 
-    public static void writePublicKey(String walletname, String password, int keyIndex, WalletCypher cypher) throws InvalidCypherException, InvalidWalletIndexException, PublicKeySerializzationException, UnlockWalletException, IOException {
+    public static void writePublicKey(String walletname, String password, int keyIndex, WalletCypher cypher) throws InvalidCypherException, InvalidWalletIndexException, PublicKeySerializzationException, UnlockWalletException, IOException, WalletException {
         switch (cypher) {
             case Ed25519BC:
                 InstanceWalletKeyStoreBCED25519 wallet = new InstanceWalletKeyStoreBCED25519(walletname, password);
