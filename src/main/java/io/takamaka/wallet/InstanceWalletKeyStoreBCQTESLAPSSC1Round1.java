@@ -270,7 +270,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
      * Retrieve the keypair at a specific index in the wallet.
      *
      * If the keypair is not yet stored in the signKeys collection, it will be
-     * generated using Ed25519KeyPairGenerator, initialized with a seed and an
+     * generated using BCQTESLAKeyPairGenerator, initialized with a seed and an
      * index, then added to the signKeys collection
      *
      * @param index index of the keypair to be retrieved
