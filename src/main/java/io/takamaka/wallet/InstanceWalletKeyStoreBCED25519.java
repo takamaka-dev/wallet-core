@@ -92,6 +92,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
                     initWallet("Password");
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error name", ex);
+                    throw new UnlockWalletException("Error initializing wallet", ex);
                 }
                 isInitialized = true;
             }
@@ -117,6 +118,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
                     initWallet(password);
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error name password", ex);
+                    throw new UnlockWalletException("Error opening wallet, wrong password", ex);
                 }
                 isInitialized = true;
             }
@@ -144,6 +146,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
                     initWallet(nCharForSeed);
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error seed", ex);
+                    throw new UnlockWalletException("Error intializing wallet", ex);
                 }
                 isInitialized = true;
             }
@@ -156,9 +159,9 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
             //FileHelper.createDir(FileHelper.getDefaultWalletDirectoryPath());
             try {
                 FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
-            } catch (IOException e) {
-                System.out.println("Error creating dir");
-                e.printStackTrace();
+            } catch (IOException ex) {
+                log.error("Error creating directory");
+                throw new IOException("Error creating directory", ex);
             }
         }
         if (!FileHelper.fileExists(Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), currentWalletName))) {
@@ -176,6 +179,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
 
             } catch (NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException ex) {
                 log.error("instance error password", ex);
+                throw new InvalidKeySpecException("Error initializing wallet.", ex);
             }
         }
         Path currentWalletPath = Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), currentWalletName);
@@ -188,6 +192,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
                 //System.out.println(seed);
             } catch (InvalidAlgorithmParameterException | FileNotFoundException | NoSuchProviderException | NoSuchPaddingException | InvalidKeyException ex) {
                 log.error("initWallet unreadable file?", ex);
+                throw new InvalidKeySpecException("Error reading wallet file.", ex);
             }
         }
     }
@@ -213,6 +218,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
                 }
             } catch (FileNotFoundException ex) {
                 log.error("instance error nseed", ex);
+                throw new FileNotFoundException("instance error nseed");
             }
         }
     }
