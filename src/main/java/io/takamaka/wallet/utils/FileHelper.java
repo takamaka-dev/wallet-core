@@ -7,6 +7,8 @@ package io.takamaka.wallet.utils;
 import io.takamaka.wallet.exceptions.HashAlgorithmNotFoundException;
 import io.takamaka.wallet.exceptions.HashEncodeException;
 import io.takamaka.wallet.exceptions.HashProviderNotFoundException;
+import io.takamaka.wallet.exceptions.ThreadSafeUtilsException;
+import io.takamaka.wallet.exceptions.WalletException;
 import static io.takamaka.wallet.utils.DefaultInitParameters.QTESLA_COMPRESSED_ADDRESSES_FOLDER_LEVELS;
 import static io.takamaka.wallet.utils.DefaultInitParameters.WALLET_EXTENSION;
 import static io.takamaka.wallet.utils.DefaultInitParameters.ZERO_BLOCK_FILE_NUMBER;
@@ -770,46 +772,41 @@ public class FileHelper {
         return folder;
     }
 
-    public static final Path getQteslaReferenceAddressFolder(String addr) {
+    public static final Path getQteslaReferenceAddressFolder(String addr) throws ThreadSafeUtilsException {
         if (TkmTextUtils.isNullOrBlank(addr)) {
             log.error("NULL ADDRESS VALUE");
-            return null;
+            throw new ThreadSafeUtilsException("NULL ADDRESS VALUE");
         }
         if (addr.length() < QTESLA_COMPRESSED_ADDRESSES_FOLDER_LEVELS) {
             log.error("BAD ADDRESS LENGHT");
-            return null;
+            throw new ThreadSafeUtilsException("BAD ADDRESS LENGHT");
         }
         String head = addr.substring(0, QTESLA_COMPRESSED_ADDRESSES_FOLDER_LEVELS);
         return Paths.get(getQteslaReferenceFolder().toString(), head);
     }
 
-    public static final Path createIfNotExistQteslaReferenceFolder(String addr) {
+    public static final Path createIfNotExistQteslaReferenceFolder(String addr) throws ThreadSafeUtilsException, IOException {
         Path aFold = getQteslaReferenceAddressFolder(addr);
         if (aFold == null) {
             log.error("FOLDER ERROR");
             return null;
         }
         if (!directoryExists(aFold)) {
-            try {
-                createDir(aFold);
-            } catch (IOException ex) {
-                log.error("ERROR CREATING ADDR FOLDER", ex);
-
-            }
+            createDir(aFold);
         }
         return aFold;
     }
 
-    private static Path getQteslaRefenceAddrFilePathInternal(String refQaddrFraction) {
+    private static Path getQteslaRefenceAddrFilePathInternal(String refQaddrFraction) throws WalletException, ThreadSafeUtilsException {
         Path qRefAddrFold = getQteslaReferenceAddressFolder(refQaddrFraction);
         if (qRefAddrFold == null | TkmTextUtils.isNullOrBlank(refQaddrFraction)) {
             log.error("ERROR CREATING FILE PATH qFold " + qRefAddrFold + " qAddrFr " + refQaddrFraction);
-            return null;
+            throw new WalletException("ERROR CREATING FILE PATH qFold " + qRefAddrFold + " qAddrFr " + refQaddrFraction);
         }
         return Paths.get(qRefAddrFold.toString(), refQaddrFraction);
     }
 
-    public static final String deflateInflateAddress(String addr, boolean deflate) throws IOException {
+    public static final String deflateInflateAddress(String addr, boolean deflate) throws IOException, WalletException, ThreadSafeUtilsException {
         if (deflate) {
             return saveQteslaAddress(addr);
         } else {
@@ -817,47 +814,34 @@ public class FileHelper {
         }
     }
 
-//    public static final ConcurrentSkipListMap<String, MainAliasBean> getMainAliasList() {
-//        try {
-//            Path settingsFolder = getSettingsPathFolder();
-//            Path mainAliasesTxFilePath = Paths.get(settingsFolder.toString(), FixedParameters.MAIN_ALIASES_SETTINGS);
-//            String mListJson = FileHelper.readStringFromFile(mainAliasesTxFilePath);
-//            ConcurrentSkipListMap<String, MainAliasBean> maList = TkmTextUtils.getListMainAliasFromJson(mListJson);
-//            return maList;
-//        } catch (FileNotFoundException ex) {
-//            Logger.getLogger(FileHelper.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        return null;
-//    }
-    public static final String saveQteslaAddress(String qAddr) {
+    public static final String saveQteslaAddress(String qAddr) throws WalletException, ThreadSafeUtilsException, IOException {
         String refQAddrFraction;
         try {
             refQAddrFraction = TkmSignUtils.Hash256ToHex(qAddr);
         } catch (HashEncodeException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
             log.error("CAN NOT CALCULATE HASH", ex);
-            return null;
+            throw new WalletException("CAN NOT CALCULATE HASH", ex);
         }
         if (TkmTextUtils.isNullOrBlank(refQAddrFraction)) {
             log.error("ERROR IN REFERENCE ADDRESS");
-            return null;
+            throw new WalletException("ERROR IN REFERENCE ADDRESS");
         }
         Path addrPath = createIfNotExistQteslaReferenceFolder(refQAddrFraction);
         if (addrPath == null) {
             log.error("ERROR CREATING ADDR PATH");
-            return null;
+            throw new WalletException("ERROR IN ADDR PATH");
         }
         Path qRefFractAddrFilePath = getQteslaRefenceAddrFilePathInternal(refQAddrFraction);
         if (qRefFractAddrFilePath == null) {
             log.error("ERROR IN ADDR PATH");
-            return null;
+            throw new WalletException("ERROR IN ADDR PATH");
         }
         if (!fileExists(qRefFractAddrFilePath)) {
             try {
                 writeStringToFile(addrPath, refQAddrFraction, qAddr, true);
             } catch (IOException ex) {
                 log.error("CAN NOT WRITE FILE!", ex);
-
-                return null;
+                throw new WalletException("CAN NOT WRITE FILE!", ex);
             }
         } else {
             log.error("ADDRESS ALREADY PRESENT IN THE LIST");
@@ -865,38 +849,37 @@ public class FileHelper {
         return FixedParameters.REFERENCE_QTESLA_ADDR_PREFIX + refQAddrFraction;
     }
 
-    public static final String getReferenceKeyStringNoSave(String qAddr) {
+    public static final String getReferenceKeyStringNoSave(String qAddr) throws ThreadSafeUtilsException {
         String refQAddrFraction;
         try {
             refQAddrFraction = TkmSignUtils.Hash256ToHex(qAddr);
         } catch (HashEncodeException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
             log.error("CAN NOT CALCULATE HASH", ex);
-
-            return null;
+            throw new ThreadSafeUtilsException("CAN NOT CALCULATE HASH", ex);
         }
         return FixedParameters.REFERENCE_QTESLA_ADDR_PREFIX + refQAddrFraction;
     }
 
     //8e35c2cd3bf6641bdb0e2050b76932cbb2e6034a0ddacc1d9bea82a6ba57f7cf <- 64 char
-    public static final String retriveQaddrByReference(String refAddr) throws IOException {
+    public static final String retriveQaddrByReference(String refAddr) throws IOException, WalletException, ThreadSafeUtilsException {
         int prefixLength = REFERENCE_QTESLA_ADDR_PREFIX.length();
         if (TkmTextUtils.isNullOrBlank(refAddr)) {
             log.error("NULL REFADDR");
-            return null;
+            throw new ThreadSafeUtilsException("NULL REFADDR");
         }
         if (refAddr.length() != prefixLength + 64) {
             log.error("WRONG ADDRESS LENGTH, missing prefix?");
-            return null;
+            throw new ThreadSafeUtilsException("WRONG ADDRESS LENGTH, missing prefix?");
         }
         if (!refAddr.contains(REFERENCE_QTESLA_ADDR_PREFIX)) {
             log.error("NOT A REFERENCE ADDRESS");
-            return null;
+            throw new ThreadSafeUtilsException("NOT A REFERENCE ADDRESS");
         }
         String internalRefAddr = refAddr.substring(prefixLength, refAddr.length());
         Path qFile = getQteslaRefenceAddrFilePathInternal(internalRefAddr);
         if (!fileExists(qFile)) {
             log.error("MISSING QFILE, ADDRESS NOT IN LIST");
-            return null;
+            throw new ThreadSafeUtilsException("MISSING QFILE, ADDRESS NOT IN LIST");
         }
         String readStringFromFile;
         readStringFromFile = readStringFromFile(qFile);
@@ -1346,14 +1329,10 @@ public class FileHelper {
         }
     }
 
-    public static final void deleteSettings(String option) {
+    public static final void deleteSettings(String option) throws IOException {
         Path settingsFolder = getSettingsPathFolder();
         Path settingsBookmarksFile = Paths.get(settingsFolder.toString(), option);
-        try {
-            FileHelper.delete(settingsBookmarksFile.toFile());
-        } catch (IOException ex) {
-            log.error("delete settings", ex);
-        }
+        FileHelper.delete(settingsBookmarksFile.toFile());
     }
 
     /**
@@ -1361,27 +1340,20 @@ public class FileHelper {
      * @param path
      * @param input
      */
-    public static final void writeTransactionBoxToFile(Path path, Object input) {
-        FileOutputStream fout = null;
+    public static final void writeTransactionBoxToFile(Path path, Object input) throws IOException {
         try {
+            FileOutputStream fout = null;
             fout = new FileOutputStream(path.toString());
-            ObjectOutputStream oos = new ObjectOutputStream(fout);
-            oos.writeObject(input);
-
-            oos.flush();
-            oos.close();
-
-        } catch (IOException ex) {
-            log.error("write Transaction Box To File", ex);
-        } finally {
-            try {
-                if (fout != null) {
-                    fout.close();
-                }
-            } catch (IOException ex) {
-                log.error("write Transaction Box To File IO ", ex);
+            try ( ObjectOutputStream oos = new ObjectOutputStream(fout)) {
+                oos.writeObject(input);
+                oos.flush();
+            } catch (IOException e) {
+                throw new IOException("stream error", e);
             }
+        } catch (IOException ex) {
+            throw new IOException("file not found? ", ex);
         }
+
     }
 
     /**
@@ -1390,13 +1362,9 @@ public class FileHelper {
      * @param sithNumber
      * @param input
      */
-    public static final void writeObjectToFile(Path path, String sithNumber, Object input) {
+    public static final void writeObjectToFile(Path path, String sithNumber, Object input) throws IOException {
         if (!path.toFile().isDirectory()) {
-            try {
-                createFolderAtPathIfNoneExist(path);
-            } catch (IOException ex) {
-                log.error("error writing object to file", ex);
-            }
+            createFolderAtPathIfNoneExist(path);
         }
         Path filePath = Paths.get(path.toString(), sithNumber);
         writeTransactionBoxToFile(filePath, input);
@@ -1408,21 +1376,18 @@ public class FileHelper {
      * @param filePath
      * @return
      */
-    public static final Object readObjectFromFile(Path filePath) {
+    public static final Object readObjectFromFile(Path filePath) throws IOException {
         Object result = null;
-        try {
-            if (filePath.toFile().isFile()) {
-                FileInputStream fileIn = new FileInputStream(filePath.toFile());
-                ObjectInputStream objectIn = new ObjectInputStream(fileIn);
-
+        if (filePath.toFile().isFile()) {
+            try ( FileInputStream fileIn = new FileInputStream(filePath.toFile()); //
+                      ObjectInputStream objectIn = new ObjectInputStream(fileIn)//
+                    ) {
                 result = objectIn.readObject();
-                objectIn.close();
-                fileIn.close();
+            } catch (ClassNotFoundException | IOException ex) {
+                throw new IOException("read object stream error", ex);
             }
-
-        } catch (IOException | ClassNotFoundException ex) {
-            log.error("error reading object from file", ex);
         }
+
         return result;
     }
 
@@ -1431,20 +1396,12 @@ public class FileHelper {
      * @param filepath
      * @return
      */
-    public static final Object readObjectFromFile(String filepath) {
+    public static final Object readObjectFromFile(String filepath) throws IOException {
         Object result = null;
-        try {
-
-            FileInputStream fileIn = new FileInputStream(filepath);
-            ObjectInputStream objectIn = new ObjectInputStream(fileIn);
-
+        try ( FileInputStream fileIn = new FileInputStream(filepath);  ObjectInputStream objectIn = new ObjectInputStream(fileIn)) {
             result = objectIn.readObject();
-            objectIn.close();
-            fileIn.close();
-
-        } catch (IOException | ClassNotFoundException ex) {
-            log.error("error reading object from file string", ex);
-            return null;
+        } catch (ClassNotFoundException | IOException ex) {
+            throw new IOException("stream read object error", ex);
         }
         return result;
     }
