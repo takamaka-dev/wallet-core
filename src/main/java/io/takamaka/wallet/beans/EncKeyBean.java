@@ -9,7 +9,7 @@ import java.io.Serializable;
 
 /**
  *
- * @author francesco.pasetto@h2tcoin.com
+ * @author francesco.pasetto@takamaka.io
  */
 public class EncKeyBean implements Serializable {
 

@@ -6,7 +6,7 @@ package io.takamaka.wallet.utils;
 
 /**
  *
- * @author francesco.pasetto@h2tcoin.com
+ * @author francesco.pasetto@takamaka.io
  */
 public class AnsiColor {
 

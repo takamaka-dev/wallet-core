@@ -6,7 +6,7 @@ package io.takamaka.wallet.beans;
 
 /**
  *
- * @author giovanni.antino@h2tcoin.com
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 public class ExtendedTransactionBox extends TransactionBox implements Comparable<TransactionBox> {
 

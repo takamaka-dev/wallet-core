@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  *
- * @author Iris Dimni <iris.dimni at takamaka.io>
+ * @author Iris Dimni iris.dimni@takamaka.io
  */
 public class InternalBlockBean implements Serializable{
     private TransactionBean coinbase;

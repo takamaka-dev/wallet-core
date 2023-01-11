@@ -12,7 +12,7 @@ import java.util.Objects;
 
 /**
  *
- * @author Giovanni Antino <giovanni.antino at takamaka.io>
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 public class InternalTransactionBean implements Serializable {
 

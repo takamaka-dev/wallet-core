@@ -40,7 +40,7 @@ import static org.apache.commons.codec.digest.DigestUtils.digest;
 
 /**
  *
- * @author Giovanni Antino <giovanni.antino at takamaka.io>
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 @Slf4j
 public class TkmSignUtils {

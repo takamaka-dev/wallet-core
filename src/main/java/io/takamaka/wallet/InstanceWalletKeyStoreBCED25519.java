@@ -48,7 +48,7 @@ import org.bouncycastle.util.encoders.UrlBase64;
 
 /**
  *
- * @author Giovanni Antino <giovanni.antino at takamaka.io>
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 @Slf4j
 public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreInterface {

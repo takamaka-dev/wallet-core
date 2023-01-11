@@ -20,7 +20,7 @@ import org.apache.commons.lang3.ArrayUtils;
 
 /**
  *
- * @author Iris Dimni <iris.dimni at takamaka.io>
+ * @author Iris Dimni iris.dimni@takamaka.io
  */
 @Slf4j
 public class TransactionUtils {

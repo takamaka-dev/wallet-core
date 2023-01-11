@@ -19,7 +19,7 @@ import org.bouncycastle.util.encoders.UrlBase64;
 
 /**
  *
- * @author giovanni.antino@h2tcoin.com
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 @Slf4j
 public class TkmCypherProviderBCED25519{

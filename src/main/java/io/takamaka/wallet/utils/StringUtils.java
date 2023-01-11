@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  *
- * @author Iris Dimni <iris.dimni at takamaka.io>
+ * @author Iris Dimni iris.dimni@takamaka.io
  */
 @Slf4j
 public class StringUtils {

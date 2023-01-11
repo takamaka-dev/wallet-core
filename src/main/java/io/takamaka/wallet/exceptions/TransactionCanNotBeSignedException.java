@@ -6,7 +6,7 @@ package io.takamaka.wallet.exceptions;
 
 /**
  *
- * @author Iris Dimni <iris.dimni at takamaka.io>
+ * @author Iris Dimni iris.dimni@takamaka.io
  */
 public class TransactionCanNotBeSignedException extends WalletException {
 

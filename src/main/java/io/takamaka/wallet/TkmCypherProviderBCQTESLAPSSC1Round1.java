@@ -11,7 +11,7 @@ import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 
 /**
  *
- * @author Giovanni Antino
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 public class TkmCypherProviderBCQTESLAPSSC1Round1 {
 

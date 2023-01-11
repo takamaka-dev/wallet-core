@@ -13,7 +13,7 @@ import java.util.Objects;
 
 /**
  *
- * @author giovanni
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 public class TransactionBox implements Serializable, Comparable<TransactionBox> {
         private String singleInclusionTransactionHash;

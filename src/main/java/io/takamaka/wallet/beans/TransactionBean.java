@@ -10,7 +10,7 @@ import java.util.Objects;
 
 /**
  *
- * @author Giovanni Antino <giovanni.antino at takamaka.io>
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 public class TransactionBean implements Serializable{
     private String publicKey;

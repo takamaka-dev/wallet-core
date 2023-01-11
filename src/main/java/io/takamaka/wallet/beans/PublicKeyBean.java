@@ -15,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  *
- * @author francesco.pasetto@h2tcoin.com
+ * @author francesco.pasetto@takamaka.io
  */
 @Slf4j
 public class PublicKeyBean implements Serializable {

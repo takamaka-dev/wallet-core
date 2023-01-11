@@ -10,7 +10,7 @@ import java.util.Objects;
 
 /**
  *
- * @author giovanni.antino@h2tcoin.com
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 public class PrivateBlockTxBean implements Serializable, Comparable<PrivateBlockTxBean> {
 

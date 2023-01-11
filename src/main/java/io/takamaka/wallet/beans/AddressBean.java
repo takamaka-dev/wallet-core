@@ -6,7 +6,7 @@ package io.takamaka.wallet.beans;
 
 /**
  *
- * @author isacco.borsani@h2tcoin.com
+ * @author isacco.borsani@takamaka.io
  */
 public class AddressBean {
 

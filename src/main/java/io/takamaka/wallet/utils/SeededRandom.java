@@ -14,7 +14,7 @@ import org.bouncycastle.util.Strings;
 
 /**
  *
- * @author Giovanni Antino <giovanni.antino at takamaka.io>
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 @Slf4j
 public class SeededRandom extends SecureRandom {

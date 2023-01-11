@@ -65,7 +65,7 @@ import org.apache.commons.io.FileUtils;
 
 /**
  *
- * @author Giovanni Antino <giovanni.antino at takamaka.io>
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 @Slf4j
 public class FileHelper {

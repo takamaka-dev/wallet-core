@@ -14,7 +14,7 @@ import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
  * for creating, reading and accessing key pairs in a wallet. It also defines
  * the method for getting the public key in different forms.
  *
- * @author Giovanni Antino <giovanni.antino at takamaka.io>
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 public interface InstanceWalletKeystoreInterface extends Comparable<InstanceWalletKeystoreInterface> {
 

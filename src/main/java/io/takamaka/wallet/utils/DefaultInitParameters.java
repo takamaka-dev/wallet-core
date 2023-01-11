@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 
 /**
  *
- * @author Giovanni Antino <giovanni.antino at takamaka.io>
+ * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 @JsonInclude(Include.NON_NULL)
 public class DefaultInitParameters {
