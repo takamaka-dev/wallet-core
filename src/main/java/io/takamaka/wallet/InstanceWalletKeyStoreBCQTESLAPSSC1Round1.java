@@ -96,6 +96,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
                     initWallet(password);
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error name password", ex);
+                    throw new UnlockWalletException("instance error name password", ex);
                 }
                 isInitialized = true;
             }
@@ -113,6 +114,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
                     initWallet(nCharSeed);
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error seed", ex);
+                    throw new UnlockWalletException("instance error seed", ex);
                 }
                 isInitialized = true;
             }
@@ -121,13 +123,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
 
     private void initWallet(int nCharSeed) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletBurnedException, WalletEmptySeedException {
         if (!FileHelper.walletDirExists()) {
-
-            try {
-                FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
-            } catch (IOException e) {
-                log.error("Error creating dir", e);
-            }
-
+            FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
         }
         if (!FileHelper.fileExists(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName))) {
             seed = RandomStringUtils.randomAlphabetic(nCharSeed);
@@ -136,16 +132,12 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
         Path currentWalletPath = Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName);
 
         if (FileHelper.fileExists(currentWalletPath)) {
-            try {
-                seed = FileHelper.readStringFromFile(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName));
-                if ("burned".equals(seed)) {
-                    throw new WalletBurnedException("WALLET IS BURNED");
-                }
-                if (TkmTextUtils.isNullOrBlank(seed)) {
-                    throw new WalletEmptySeedException("WALLET SEED IS EMPTY");
-                }
-            } catch (FileNotFoundException ex) {
-                log.error("instance error nseed", ex);
+            seed = FileHelper.readStringFromFile(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName));
+            if ("burned".equals(seed)) {
+                throw new WalletBurnedException("WALLET IS BURNED");
+            }
+            if (TkmTextUtils.isNullOrBlank(seed)) {
+                throw new WalletEmptySeedException("WALLET SEED IS EMPTY");
             }
         }
     }

@@ -137,7 +137,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
                     initWallet(password);
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error name password", ex);
-                    throw new UnlockWalletException(ex);
+                    throw new UnlockWalletException("instance error name password", ex);
                 }
                 isInitialized = true;
             }
@@ -169,7 +169,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
                     initWallet(nCharForSeed);
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error seed", ex);
-                    throw new UnlockWalletException(ex);
+                    throw new UnlockWalletException("instance error seed", ex);
                 }
                 isInitialized = true;
             }
@@ -205,12 +205,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
     private void initWallet(String password) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException {
         if (!FileHelper.walletDirExists()) {
             //FileHelper.createDir(FileHelper.getDefaultWalletDirectoryPath());
-            try {
-                FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
-            } catch (IOException e) {
-                log.error("Error creating dir", e);
-                throw new IOException("Error creating dir", e);
-            }
+            FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
         }
         if (!FileHelper.fileExists(Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), currentWalletName))) {
             List<String> words = SeedGenerator.generateWords();
