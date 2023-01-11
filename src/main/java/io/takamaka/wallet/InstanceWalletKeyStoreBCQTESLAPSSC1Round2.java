@@ -14,6 +14,7 @@ import io.takamaka.wallet.exceptions.PublicKeySerializzationException;
 import io.takamaka.wallet.exceptions.UnlockWalletException;
 import io.takamaka.wallet.exceptions.WalletBurnedException;
 import io.takamaka.wallet.exceptions.WalletEmptySeedException;
+import io.takamaka.wallet.exceptions.WalletException;
 import io.takamaka.wallet.utils.DefaultInitParameters;
 import io.takamaka.wallet.utils.FileHelper;
 import io.takamaka.wallet.utils.KeyContexts;
@@ -67,7 +68,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         return walletCypher;
     }
 
-    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName) throws UnlockWalletException {
+    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName) throws UnlockWalletException, WalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
@@ -78,13 +79,14 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
                     initWallet("Password");
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error name", ex);
+                    throw new UnlockWalletException("instance error name", ex);
                 }
                 isInitialized = true;
             }
         }
     }
 
-    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, String password) throws UnlockWalletException {
+    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, String password) throws UnlockWalletException, WalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
@@ -95,6 +97,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
                     initWallet(password);
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error name password", ex);
+                    throw new UnlockWalletException("instance error name password", ex);
                 }
                 isInitialized = true;
             }
@@ -110,21 +113,18 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
                     hexPublicKeys = Collections.synchronizedMap(new HashMap<Integer, String>());
                     bytePublicKeys = Collections.synchronizedMap(new HashMap<Integer, byte[]>());
                     initWallet(nCharSeed);
-                } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
+                } catch (WalletException | IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error seed", ex);
+                    throw new UnlockWalletException("instance error seed", ex);
                 }
                 isInitialized = true;
             }
         }
     }
 
-    private void initWallet(int nCharSeed) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletBurnedException, WalletEmptySeedException {
+    private void initWallet(int nCharSeed) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletBurnedException, WalletEmptySeedException, WalletException {
         if (!FileHelper.walletDirExists()) {
-            try {
-                FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
-            } catch (IOException e) {
-                log.error("Error creating dir", e);
-            }
+            FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
         }
         if (!FileHelper.fileExists(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName))) {
             seed = RandomStringUtils.randomAlphabetic(nCharSeed);
@@ -133,21 +133,18 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         Path currentWalletPath = Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName);
 
         if (FileHelper.fileExists(currentWalletPath)) {
-            try {
-                seed = FileHelper.readStringFromFile(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName));
-                if ("burned".equals(seed)) {
-                    throw new WalletBurnedException("WALLET IS BURNED");
-                }
-                if (TkmTextUtils.isNullOrBlank(seed)) {
-                    throw new WalletEmptySeedException("WALLET SEED IS EMPTY");
-                }
-            } catch (FileNotFoundException ex) {
-                log.error("instance error nseed", ex);
+            seed = FileHelper.readStringFromFile(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName));
+            if ("burned".equals(seed)) {
+                throw new WalletBurnedException("WALLET IS BURNED");
             }
+            if (TkmTextUtils.isNullOrBlank(seed)) {
+                throw new WalletEmptySeedException("WALLET SEED IS EMPTY");
+            }
+
         }
     }
 
-    private void initWallet(String password) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException {
+    private void initWallet(String password) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletException {
         if (!FileHelper.walletDirExists()) {
             FileHelper.createDir(FileHelper.getDefaultWalletDirectoryPath());
         }
@@ -166,6 +163,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
                 WalletHelper.writeKeyFile(FileHelper.getDefaultWalletDirectoryPath(), currentWalletName, kb, password);
             } catch (NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException ex) {
                 log.error("instance error password", ex);
+                throw new WalletException("instance error password", ex);
             }
         }
         Path currentWalletPath = Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), currentWalletName);
@@ -175,6 +173,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
                 seed = WalletHelper.readKeyFile(currentWalletPath, password).getSeed();
             } catch (InvalidAlgorithmParameterException | FileNotFoundException | NoSuchProviderException | NoSuchPaddingException | InvalidKeyException ex) {
                 log.error("initWallet unreadable file?", ex);
+                throw new WalletException("initWallet unreadable file?", ex);
             }
         }
     }
