@@ -20,6 +20,7 @@ import io.takamaka.wallet.exceptions.InvalidCypherException;
 import io.takamaka.wallet.exceptions.InvalidWalletIndexException;
 import io.takamaka.wallet.exceptions.PublicKeySerializzationException;
 import io.takamaka.wallet.exceptions.UnlockWalletException;
+import io.takamaka.wallet.exceptions.WalletException;
 import static io.takamaka.wallet.utils.FixedParameters.PUBLICKEY_EXTENSION;
 import io.takamaka.wallet.utils.FixedParameters.WalletError;
 import io.takamaka.wallet.utils.KeyContexts.WalletCypher;
@@ -36,6 +37,8 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -124,16 +127,14 @@ public class WalletHelper {
      * @throws UnlockWalletException
      */
     public static KeyBean readKeyFile(Path filename, String password) throws FileNotFoundException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnlockWalletException {
-        String encJson = FileHelper.readStringFromFile(filename);
-//        System.out.println("Encoded Json");
-//        System.out.println(encJson);
+        String encJson;
+        try {
+            encJson = FileHelper.readStringFromFile(filename);
+        } catch (IOException ex) {
+            log.error("error reading encoded file");
+            throw new UnlockWalletException("error reading encoded file", ex);
+        }
         byte[][] wallet = TkmTextUtils.enckeyBeanFromJson(encJson).getWallet();
-        /*
-        System.out.println("Byte Array Zero");
-        System.out.println(Arrays.toString(wallet[0]));
-        System.out.println("Byte Array Uno");
-        System.out.println(Arrays.toString(wallet[1]));
-         */
         String json;
 
         try {
@@ -168,7 +169,13 @@ public class WalletHelper {
     }
 
     public static final KeyBean readEncFile(Path filename, String password) throws FileNotFoundException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnlockWalletException {
-        String encJson = FileHelper.readStringFromFile(filename);
+        String encJson;
+        try {
+            encJson = FileHelper.readStringFromFile(filename);
+        } catch (IOException ex) {
+            log.error("error reading encoded file");
+            throw new UnlockWalletException("error reading encoded file", ex);
+        }
         byte[][] wallet;//  TkmTextUtils.enckeyBeanFromJson(encJson).getWallet();
         try {
             //        System.out.println("Encoded Json");
@@ -283,17 +290,17 @@ public class WalletHelper {
 
     }
 
-    public static PublicKeyBean readPublicKey(String publicKeyName) {
+    public static PublicKeyBean readPublicKey(String publicKeyName) throws WalletException {
         try {
             String json = FileHelper.readStringFromFile(Paths.get(FileHelper.getPublicKeyDirectoryPath().toString(), publicKeyName + FixedParameters.PUBLICKEY_EXTENSION));
             return TkmTextUtils.publicKeyBeanFromJson(json);
-        } catch (FileNotFoundException ex) {
+        } catch (IOException ex) {
             log.error(WalletError.PKEY_READ.name(), ex);
-            return null;
+            throw new WalletException("error reading public key bean", ex);
         }
     }
 
-    public static Map<String, PublicKeyBean> listPublicKeys() {
+    public static Map<String, PublicKeyBean> listPublicKeys() throws WalletException {
         Map<String, PublicKeyBean> ret = new LinkedHashMap<String, PublicKeyBean>();
         File folder = new File(FileHelper.getPublicKeyDirectoryPath().toString());
         File[] listOfFiles = folder.listFiles();

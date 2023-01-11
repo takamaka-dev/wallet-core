@@ -333,19 +333,11 @@ public class FileHelper {
         return Paths.get(getSlotDirectory(epoch, slot).toString(), uid + "." + hkw.name());
     }
 
-    public static final Path initKeyHexWriterDirectoryTree(int epoch, int slot, String uid, HexKeyWriter hkw) {
+    public static final Path initKeyHexWriterDirectoryTree(int epoch, int slot, String uid, HexKeyWriter hkw) throws IOException {
         Path baseDir = null;
-        try {
-            log.info("init Key Hex Dir for " + hkw.name());
-            baseDir = FileHelper.getKeyWriterBucketDirectory(epoch, slot, uid, hkw);
-            FileHelper.createDir(
-                    baseDir
-            );
-
-        } catch (IOException ex) {
-            log.error("init Key Hex Dir for FAILURE", ex);
-
-        }
+        log.info("init Key Hex Dir for " + hkw.name());
+        baseDir = FileHelper.getKeyWriterBucketDirectory(epoch, slot, uid, hkw);
+        FileHelper.createDir(baseDir);
         return baseDir;
     }
 
@@ -604,26 +596,18 @@ public class FileHelper {
         return settingsFolder;
     }
 
-    public static final Path getTransactionsDumpPathFolder(String pidName) {
+    public static final Path getTransactionsDumpPathFolder(String pidName) throws IOException {
         Path baseDumpFolder = Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER);
         if (!baseDumpFolder.toFile().isDirectory()) {
-            try {
-                FileHelper.createDir(baseDumpFolder);
-            } catch (IOException ex) {
-                log.error("dump directory FAILURE", ex);
-            }
+            FileHelper.createDir(baseDumpFolder);
         }
         if (baseDumpFolder.toFile().isDirectory()) {
-            try {
-                Path inner = Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER, pidName);
-                FileHelper.createDir(inner);
-                if (!inner.toFile().isDirectory()) {
-                    return null;
-                }
-                return inner;
-            } catch (IOException ex) {
-                log.error("dump directory create dir FAILURE", ex);
+            Path inner = Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER, pidName);
+            FileHelper.createDir(inner);
+            if (!inner.toFile().isDirectory()) {
+                return null;
             }
+            return inner;
         }
         return null;
     }
@@ -633,30 +617,22 @@ public class FileHelper {
      * @param resourceName resource name
      * @param destinationPath destination folder path
      */
-    public static final void extractFromJar(String resourceName, Path destinationPath) {
-        //file exist
-        try {
-            Path resourcePath = Paths.get(destinationPath.toString(), resourceName);
-            if (fileExists(resourcePath)) {
-                delete(resourcePath);
-            }
-            ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
-            //Package[] definedPackages = systemClassLoader.getDefinedPackages();
-            Stream<URL> resources = systemClassLoader.resources(resourceName);
-            //System.out.println("RES!! " + resources.count());
-            InputStream resourceAsStream;
-
-            if (resources.count() <= 0) {
-                System.out.println("FALLBACK");
-                resourceAsStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName);
-            } else {
-                resourceAsStream = systemClassLoader.getResourceAsStream(resourceName);
-            }
-            FileUtils.copyInputStreamToFile(resourceAsStream, resourcePath.toFile());
-            //System.out.println("PKGS: " + Arrays.toString(definedPackages));
-        } catch (IOException ex) {
-            log.info("jar extraction error ", ex);
+    public static final void extractFromJar(String resourceName, Path destinationPath) throws IOException {
+        Path resourcePath = Paths.get(destinationPath.toString(), resourceName);
+        if (fileExists(resourcePath)) {
+            delete(resourcePath);
         }
+        ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
+        Stream<URL> resources = systemClassLoader.resources(resourceName);
+        InputStream resourceAsStream;
+
+        if (resources.count() <= 0) {
+            System.out.println("FALLBACK");
+            resourceAsStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName);
+        } else {
+            resourceAsStream = systemClassLoader.getResourceAsStream(resourceName);
+        }
+        FileUtils.copyInputStreamToFile(resourceAsStream, resourcePath.toFile());
     }
 
     /**
@@ -775,186 +751,6 @@ public class FileHelper {
             log.info("settingsWalletFolder wallets dir created");
         }
 
-//        if (!FileHelper.fileExists(settingsBookmarksFile)) {
-//            ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl> bookmarks = new ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl>();
-//            bookmarks.put(DEFAULT_BOOKMARK_URL.toString(), DEFAULT_BOOKMARK_URL);
-//            bookmarks.put(TEST_BOOKMARK_URL.toString(), TEST_BOOKMARK_URL);
-//            bookmarks.put(LOCALHOST_BOOKMARK_URL.toString(), LOCALHOST_BOOKMARK_URL);
-//            //bookmarks.put(IRIS_BOOKMARK_URL.toString(), IRIS_BOOKMARK_URL);
-//            String toJsonComboItemSettingsBookmarkUrl = TkmTextUtils.toJsonComboItemSettingsBookmarkUrl(bookmarks);
-//            FileHelper.writeStringToFile(settingsFolder, FixedParameters.SETTINGS_BOOKMARKS, toJsonComboItemSettingsBookmarkUrl, true);
-//            SWTracker.i().setBookmarks(bookmarks);
-//            //TkmTextUtils
-//        } else {
-//            String readStringFromFile = FileHelper.readStringFromFile(settingsBookmarksFile);
-//            ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl> listMapComboItemSettingsBookmarkUrlFromJson = TkmTextUtils.getListMapComboItemSettingsBookmarkUrlFromJson(readStringFromFile);
-//            Arrays.stream(ALL_BOOKMARKS).parallel().forEach((ComboItemSettingsBookmarkUrl cis) -> {
-//                listMapComboItemSettingsBookmarkUrlFromJson.put(cis.toString(), cis);
-//            });
-//            SWTracker.i().setBookmarks(listMapComboItemSettingsBookmarkUrlFromJson);
-//        }
-//        Path settingsTxFile = Paths.get(settingsFolder.toString(), FixedParameters.SETTINGS_TX);
-//        if (!FileHelper.fileExists(settingsTxFile)) {
-//            ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl> setTX = new ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl>();
-//            setTX.put(DEFAULT_SEND_TRANSACTION_URL.toString(), DEFAULT_SEND_TRANSACTION_URL);
-//            setTX.put(INTERNAL_SEND_TRANSACTION_URL.toString(), INTERNAL_SEND_TRANSACTION_URL);
-//            setTX.put(TEST_SEND_TRANSACTION_URL.toString(), TEST_SEND_TRANSACTION_URL);
-//            String toJsonComboItemSettingsBookmarkUrl = TkmTextUtils.toJsonComboItemSettingsBookmarkUrl(setTX);
-//            FileHelper.writeStringToFile(settingsFolder, FixedParameters.SETTINGS_TX, toJsonComboItemSettingsBookmarkUrl, true);
-//            SWTracker.i().setSendTransactionUrl(setTX);
-//            //TkmTextUtils
-//        } else {
-//            String readStringFromFile = FileHelper.readStringFromFile(settingsTxFile);
-//            ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl> listMapComboItemSettingsBookmarkUrlFromJson = TkmTextUtils.getListMapComboItemSettingsBookmarkUrlFromJson(readStringFromFile);
-//            Arrays.stream(ALL_SEND_TRANSACTIONS).parallel().forEach((ComboItemSettingsBookmarkUrl cis) -> {
-//                listMapComboItemSettingsBookmarkUrlFromJson.put(cis.toString(), cis);
-//            });
-//            SWTracker.i().setSendTransactionUrl(listMapComboItemSettingsBookmarkUrlFromJson);
-//        }
-//        Path fastTxFile = Paths.get(settingsFolder.toString(), FixedParameters.FAST_SETTINGS);
-//        if (!FileHelper.fileExists(fastTxFile)) {
-//            ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl> setTX = new ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl>();
-//            setTX.put(DEFAULT_FAST_TAG.toString(), DEFAULT_FAST_TAG);
-//            setTX.put(INTERNAL_FAST_TAG.toString(), INTERNAL_FAST_TAG);
-//            setTX.put(TEST_FAST_TAG.toString(), TEST_FAST_TAG);
-//            String toJsonComboItemSettingsBookmarkUrl = TkmTextUtils.toJsonComboItemSettingsBookmarkUrl(setTX);
-//            FileHelper.writeStringToFile(settingsFolder, FixedParameters.FAST_SETTINGS, toJsonComboItemSettingsBookmarkUrl, true);
-//            SWTracker.i().setFastTag(setTX);
-//            //TkmTextUtils
-//        } else {
-//            String readStringFromFile = FileHelper.readStringFromFile(fastTxFile);
-//            ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl> listMapComboItemSettingsBookmarkUrlFromJson = TkmTextUtils.getListMapComboItemSettingsBookmarkUrlFromJson(readStringFromFile);
-//            Arrays.stream(ALL_FAST_TAG).parallel().forEach((ComboItemSettingsBookmarkUrl cis) -> {
-//                listMapComboItemSettingsBookmarkUrlFromJson.put(cis.toString(), cis);
-//            });
-//            SWTracker.i().setFastTag(listMapComboItemSettingsBookmarkUrlFromJson);
-//        }
-//        Path apiTxFile = Paths.get(settingsFolder.toString(), FixedParameters.API_SETTINGS);
-//        if (!FileHelper.fileExists(apiTxFile)) {
-//            ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl> setTX = new ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl>();
-//            setTX.put(DEFAULT_API_URL.toString(), DEFAULT_API_URL);
-//            setTX.put(TEST_API_URL.toString(), TEST_API_URL);
-//            setTX.put(INTERNAL_API_URL.toString(), INTERNAL_API_URL);
-//            //setTX.put(INTERNAL_SEND__TRANSACTION_URL.toString(), INTERNAL_SEND__TRANSACTION_URL);
-//            String toJsonComboItemSettingsBookmarkUrl = TkmTextUtils.toJsonComboItemSettingsBookmarkUrl(setTX);
-//            FileHelper.writeStringToFile(settingsFolder, FixedParameters.API_SETTINGS, toJsonComboItemSettingsBookmarkUrl, true);
-//            SWTracker.i().setApiUrl(setTX);
-//            //TkmTextUtils
-//        } else {
-//            String readStringFromFile = FileHelper.readStringFromFile(apiTxFile);
-//            ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl> listMapComboItemSettingsBookmarkUrlFromJson = TkmTextUtils.getListMapComboItemSettingsBookmarkUrlFromJson(readStringFromFile);
-//            Arrays.stream(ALL_API_URL).parallel().forEach((ComboItemSettingsBookmarkUrl cis) -> {
-//                listMapComboItemSettingsBookmarkUrlFromJson.put(cis.toString(), cis);
-//            });
-//            SWTracker.i().setApiUrl(listMapComboItemSettingsBookmarkUrlFromJson);
-//        }
-//        Path mainAliasesTxFile = Paths.get(settingsFolder.toString(), FixedParameters.MAIN_ALIASES_SETTINGS);
-//        if (!FileHelper.fileExists(mainAliasesTxFile)) {
-//            //create demo file
-//            ConcurrentSkipListMap<String, MainAliasBean> aliasList = new ConcurrentSkipListMap<String, MainAliasBean>();
-//            aliasList.put("testShortAddrHEX", new MainAliasBean("testShortAddrHEX", "Here goes the alias", "testLongAddrURL64"));
-//            String toJsonMainAliasList = TkmTextUtils.toJsonMainAliasList(aliasList);
-//            FileHelper.writeStringToFile(settingsFolder, FixedParameters.MAIN_ALIASES_SETTINGS, toJsonMainAliasList, true);
-//        } else {
-//            //do nothing
-//            /*
-//            String readStringFromFile = FileHelper.readStringFromFile(mainAliasesTxFile);
-//            ConcurrentSkipListMap<String, MainAliasBean> aliasList 
-//             */
-//        }
-//        //explorer settings
-//        Path settingsExplorerFile = Paths.get(settingsFolder.toString(), FixedParameters.BASEURL_SETTINGS_FILENAME_EXPLORER);
-//        if (!FileHelper.fileExists(settingsExplorerFile)) {
-//            ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl> setTX = new ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl>();
-//            /*
-//            setTX.put(BA.toString(), DEFAULT_API_URL);
-//            setTX.put(TEST_API_URL.toString(), TEST_API_URL);
-//            setTX.put(INTERNAL_API_URL.toString(), INTERNAL_API_URL);
-//             */
-//            Arrays.stream(DefaultInitParameters.BASEURL_EXPLORER_ALL).forEachOrdered((ComboItemSettingsBookmarkUrl cib) -> {
-//                setTX.put(cib.toString(), cib);
-//            });
-//            //setTX.put(INTERNAL_SEND__TRANSACTION_URL.toString(), INTERNAL_SEND__TRANSACTION_URL);
-//            String toJsonComboItemSettingsBookmarkUrl = TkmTextUtils.toJsonComboItemSettingsBookmarkUrl(setTX);
-//            FileHelper.writeStringToFile(settingsFolder, FixedParameters.BASEURL_SETTINGS_FILENAME_EXPLORER, toJsonComboItemSettingsBookmarkUrl, true);
-//            SWTracker.i().setExplorerBaseurlMap(setTX);
-//            //TkmTextUtils
-//        } else {
-//            String readStringFromFile = FileHelper.readStringFromFile(settingsExplorerFile);
-//            ConcurrentSkipListMap<String, ComboItemSettingsBookmarkUrl> listMapComboItemSettingsBookmarkUrlFromJson = TkmTextUtils.getListMapComboItemSettingsBookmarkUrlFromJson(readStringFromFile);
-//            Arrays.stream(DefaultInitParameters.BASEURL_EXPLORER_ALL).parallel().forEach((ComboItemSettingsBookmarkUrl cis) -> {
-//                listMapComboItemSettingsBookmarkUrlFromJson.put(cis.toString(), cis);
-//            });
-//            SWTracker.i().setExplorerBaseurlMap(listMapComboItemSettingsBookmarkUrlFromJson);
-//        }
-//        Path cashbackTxFile = Paths.get(settingsFolder.toString(), FixedParameters.CASHBACK_SETTINGS_FILENAME);
-//        boolean chWinit = false;
-//        if (!FileHelper.fileExists(cashbackTxFile)) {
-//            CashbackSettingsBean cashbackSettingsBean = new CashbackSettingsBean(FixedParameters.CASHBACK_SETTINGS_WALLET_TYPE, FixedParameters.CASHBACK_SETTINGS_WALLET_NAME);
-//            cashbackSettingsBean.setPassword(RandomStringUtils.randomAlphanumeric(25));
-//            String cashbackStringJson = TkmTextUtils.toJson(cashbackSettingsBean);
-//            try {
-//                DefaultInitParameters.cashbackSettings = cashbackSettingsBean;
-//                FileHelper.writeStringToFile(settingsFolder, FixedParameters.CASHBACK_SETTINGS_FILENAME, cashbackStringJson, false);
-//                ApiWalletSingleton.i().getAddressAtIndex(0);
-//                try {
-//                    String chWname = DefaultInitParameters.cashbackSettings.getWalletName() + DefaultInitParameters.WALLET_EXTENSION;
-//                    Path walletPath = Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), chWname);
-//                    KeyBean kb = WalletHelper.readKeyFile(walletPath, DefaultInitParameters.cashbackSettings.getPassword());
-//                    cashbackSettingsBean.setKwb(kb);
-//                    cashbackStringJson = TkmTextUtils.toJson(cashbackSettingsBean);
-//                    FileHelper.writeStringToFile(settingsFolder, FixedParameters.CASHBACK_SETTINGS_FILENAME, cashbackStringJson, true);
-//                } catch (FileNotFoundException | NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | UnlockWalletException ex) {
-//                    ex.printStackTrace();
-//                    Log.logStacktrace(Level.SEVERE, ex);
-//                }
-//                chWinit = true;
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//                Log.logStacktrace(Level.SEVERE, e);
-//            }
-//            
-//        } else {
-//            try {
-//                String cashbackStringJson = FileHelper.readStringFromFile(cashbackTxFile);
-//                CashbackSettingsBean cashbackSettingsBean = TkmTextUtils.getCashbackSettingsBeanFromJson(cashbackStringJson);
-//                if (cashbackSettingsBean.getPassword() == null || cashbackSettingsBean.getKwb() == null) {
-//                    throw new FileNotFoundException("ureadable json, cashback address unconfigured");
-//                }
-//                DefaultInitParameters.cashbackSettings = cashbackSettingsBean;
-//                chWinit = true;
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//                Log.logStacktrace(Level.SEVERE, e);
-//            }
-//        }
-//        
-//        if (!chWinit) {
-//            DefaultInitParameters.cashbackSettings = null;
-//        }
-//        
-//        Path toAddresses = Paths.get(settingsFolder.toString(), FixedParameters.FAVOURITE_TO_BOOKMARKS);
-//        if (!FileHelper.fileExists(toAddresses)) {
-//            ConcurrentSkipListMap<String, FavouriteToBookmark> toAddrs = new ConcurrentSkipListMap<String, FavouriteToBookmark>();
-//            SWTracker.i().setBookmarksToAddresses(toAddrs);
-//            //TkmTextUtils
-//        } else {
-//            String readStringFromFile = FileHelper.readStringFromFile(toAddresses);
-//            ConcurrentSkipListMap<String, FavouriteToBookmark> getListMapFavouriteToBookmarkFromJson = TkmTextUtils.getListMapFavouriteToBookmarkFromJson(readStringFromFile);
-//            SWTracker.i().setBookmarksToAddresses(getListMapFavouriteToBookmarkFromJson);
-//        }
-//        
-//        Path qFold = getQteslaReferenceFolder();
-//        if (!directoryExists(qFold)) {
-//            createDir(qFold);
-//        }
-//        
-//        Path replicaOptions = Paths.get(getDefaultApplicationDirectoryPath().toString(), FixedParameters.REPLICA_NODE_ENABLED);
-//        if (replicaOptions.toFile().isFile()) {
-//            System.out.println("REPLICA NODE!!!!!!!!!!!!!!!!!!!!");
-//            F.g("replica node enabled");
-//            DefaultInitParameters.isReplicaNode = true;
-//        }
     }
 
     public static final Path getGlobalFolderPath() {
@@ -1013,7 +809,7 @@ public class FileHelper {
         return Paths.get(qRefAddrFold.toString(), refQaddrFraction);
     }
 
-    public static final String deflateInflateAddress(String addr, boolean deflate) {
+    public static final String deflateInflateAddress(String addr, boolean deflate) throws IOException {
         if (deflate) {
             return saveQteslaAddress(addr);
         } else {
@@ -1082,7 +878,7 @@ public class FileHelper {
     }
 
     //8e35c2cd3bf6641bdb0e2050b76932cbb2e6034a0ddacc1d9bea82a6ba57f7cf <- 64 char
-    public static final String retriveQaddrByReference(String refAddr) {
+    public static final String retriveQaddrByReference(String refAddr) throws IOException {
         int prefixLength = REFERENCE_QTESLA_ADDR_PREFIX.length();
         if (TkmTextUtils.isNullOrBlank(refAddr)) {
             log.error("NULL REFADDR");
@@ -1103,25 +899,10 @@ public class FileHelper {
             return null;
         }
         String readStringFromFile;
-        try {
-            readStringFromFile = readStringFromFile(qFile);
-        } catch (FileNotFoundException ex) {
-            log.error("READ FILE ERROR", ex);
-
-            return null;
-        }
+        readStringFromFile = readStringFromFile(qFile);
         return readStringFromFile;
     }
 
-//    public static final void writeFavouriteToBookmarkList(ConcurrentSkipListMap<String, FavouriteToBookmark> getListMapFavouriteToBookmark) {
-//        try {
-//            String toJsonFavouriteToBookmarkList = TkmTextUtils.toJsonFavouriteToBookmarkList(getListMapFavouriteToBookmark);
-//            Path settingsFolder = Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), FixedParameters.SETTINGS_FOLDER);
-//            FileHelper.writeStringToFile(settingsFolder, FixedParameters.FAVOURITE_TO_BOOKMARKS, toJsonFavouriteToBookmarkList, true);
-//        } catch (IOException ex) {
-//            log.error("write Favourite To Bookmark List", ex);
-//        }
-//    }
     /**
      *
      * @param file
@@ -1444,6 +1225,7 @@ public class FileHelper {
 
                 } catch (Exception e) {
                     log.error("delete folder error", e);
+                    throw new IOException("delete folder error", e);
                 }
             }
         }
@@ -1457,19 +1239,13 @@ public class FileHelper {
      * @return
      * @throws FileNotFoundException
      */
-    public static final String readStringFromFile(Path file) throws FileNotFoundException {
-//        synchronized (KEYLOCK) {
+    public static final String readStringFromFile(Path file) throws FileNotFoundException, IOException {
         if (!file.toFile().isFile()) {
             throw new FileNotFoundException();
         }
         String content = null;
-        try {
-            content = new String(Files.readAllBytes(file));
-        } catch (IOException ex) {
-            log.error("readStringFromFile error", ex);
-        }
+        content = new String(Files.readAllBytes(file));
         return content;
-        //}
     }
 
     /**
@@ -1479,19 +1255,15 @@ public class FileHelper {
      * @return
      * @throws FileNotFoundException
      */
-    public static final String readStringFromFileUTF8(Path file) throws FileNotFoundException {
+    public static final String readStringFromFileUTF8(Path file) throws FileNotFoundException, IOException {
 
         if (!file.toFile().isFile()) {
             throw new FileNotFoundException();
         }
         String content = null;
-        try {
-            byte[] readAllBytes = Files.readAllBytes(file);
-            content = new String(readAllBytes, StandardCharsets.UTF_8);
+        byte[] readAllBytes = Files.readAllBytes(file);
+        content = new String(readAllBytes, StandardCharsets.UTF_8);
 
-        } catch (IOException ex) {
-            log.error("read String From File UTF8 ", ex);
-        }
         return content;
 
     }
