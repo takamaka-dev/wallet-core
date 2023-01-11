@@ -22,15 +22,11 @@ public class TransactionBean implements Serializable{
     public TransactionBean() {
     }
 
-    /**
-     * {@link https://en.wikipedia.org/wiki/Digital_Signature_Algorithm#Sensitivity}
-     */
     public String getRandomSeed() {
         return randomSeed;
     }
 
     /**
-     * {@link https://en.wikipedia.org/wiki/Digital_Signature_Algorithm#Sensitivity}
      *
      * @param randomSeed
      */

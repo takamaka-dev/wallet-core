@@ -267,16 +267,7 @@ public class DefaultInitParameters {
 
     public static String REFERENCE_KEYS_DATABASE_FOLDER = "reference_keys_db_folder";
     public static String STATE_DATABASE_FOLDER = "state_db_folder";
-    /**
-     * <html>
-     * <br>0 or less - unsupported
-     * <br>1 - best configuration for single hdd (Larger files fewer handlers)
-     * <br>2 - raid hdd / ssd
-     * <br>3 - ssd only (smaller files and high number of disk accesses)
-     * <br>4 or more - The number of handlers increases exponentially with the
-     * indicated value, it is not advisable to use values higher than 3
-     * </html>
-     */
+
     public static String LIVE_STATE_FOLDER = "live_state";
     public static String REFERENCE_KEYS_DATABASE_MULTIPART_LEVELS = "1";
     public static String REFERENCE_KEYS_DATABASE_NAME = "reference_key_database";

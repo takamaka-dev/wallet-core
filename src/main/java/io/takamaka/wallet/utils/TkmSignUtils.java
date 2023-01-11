@@ -124,9 +124,9 @@ public class TkmSignUtils {
     /**
      * internal method used in the "EXPRESS" version for psql tables. Use
      *
-     * @Hash384ToHex to bookmark and sohrtened public addresses (meta addresses)
+     * Hash384ToHex to bookmark and sohrtened public addresses (meta addresses)
      *
-     * @param input
+     * @param input 
      * @return
      */
     public static final String getShortenedAddr(String input) {

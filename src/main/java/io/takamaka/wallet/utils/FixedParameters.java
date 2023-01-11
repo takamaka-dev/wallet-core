@@ -378,9 +378,6 @@ public class FixedParameters {
     //KeyContexts.TransactionType.UNDEFINED
     };
 
-    /**
-     * {@link   FILTER_TRANSACTION_EXPIRATION_STEP_ZERO_LIST#FILTER_TRANSACTION_EXPIRATION_BOOTSTRAP}
-     */
     public static final List<KeyContexts.TransactionType> FILTER_TRANSACTION_EXPIRATION_BOOTSTRAP
             = new ArrayList<KeyContexts.TransactionType>(
                     Arrays.asList(FILTER_TRANSACTION_EXPIRATION_BOOTSTRAP_LIST)
@@ -413,9 +410,6 @@ public class FixedParameters {
     //KeyContexts.TransactionType.UNDEFINED
     };
 
-    /**
-     * {@link   FILTER_TRANSACTION_EXPIRATION_STEP_ZERO_LIST#FILTER_TRANSACTION_EXPIRATION_BOOTSTRAP}
-     */
     public static final List<KeyContexts.TransactionType> FILTER_TRANSACTION_EXPIRATION_NORMAL_OPERATION
             = new ArrayList<KeyContexts.TransactionType>(
                     Arrays.asList(FILTER_TRANSACTION_EXPIRATION_NORMAL_OPERATION_LIST)

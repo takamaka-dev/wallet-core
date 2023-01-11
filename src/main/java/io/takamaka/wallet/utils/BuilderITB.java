@@ -359,13 +359,6 @@ public class BuilderITB {
         }
     }
 
-    /**
-     *
-     * @param from
-     * @param message
-     * @param notBefore
-     * @return
-     */
     public static InternalBlockBean block(TransactionBean coinbase, TransactionBean previousBlock, TransactionBean blockHash, ConcurrentSkipListMap<String, String> forwardKeys, ConcurrentSkipListMap<String, TkmRewardBean> rewardList, ConcurrentSkipListSet<PrivateBlockTxBean> transactions) {
 
         InternalBlockBean result = new InternalBlockBean();

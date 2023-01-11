@@ -15,11 +15,12 @@ import lombok.extern.slf4j.Slf4j;
 public class StringUtils {
 
     /**
-     * @Deprecated use an equivalent method from
+     * use an equivalent method from
      * org.apache.commons.lang3.StringUtils
      *
      * @param input
      * @return
+     * @deprecated 
      */
     public static Boolean isNullOrWhiteSpace(String input) {
         Boolean result = false;

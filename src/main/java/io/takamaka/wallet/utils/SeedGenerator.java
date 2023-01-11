@@ -60,7 +60,7 @@ public class SeedGenerator {
     /**
      * It generates a random 25 list of words used for wallet creation
      *
-     * @return List<String> of words
+     * @return 
      * @throws NoSuchAlgorithmException
      */
     public static List<String> generateWords() throws NoSuchAlgorithmException {

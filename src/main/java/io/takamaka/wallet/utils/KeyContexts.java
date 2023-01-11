@@ -198,7 +198,7 @@ public final class KeyContexts {
          */
         DECLARATION, //used for building balances at the beginning of time
         /**
-         * @Deprecated
+         * @deprecated
          */
         BLOCK_CLOSE, //REMOVED
 
@@ -237,14 +237,14 @@ public final class KeyContexts {
         /**
          * require the next valid block using the last valid block hash
          *
-         * @Deprecated
+         * @deprecated
          */
         REQUEST_BLOCK,
         /**
          * reply to a request block transaction containing the nearest valid
          * block or the first one if requestor is in a chain split
          *
-         * @Deprecated
+         * @deprecated
          */
         RETURN_BLOCK,
         /**
