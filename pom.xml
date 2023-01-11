@@ -1,12 +1,57 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <name>Takamaka core wallet package</name>
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>io.takamaka</groupId>
-    <artifactId>takamaka-core-wallet</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
     <description>This package contains core classes for the Takamaka blockchain Wallet, ancillary methods that initialize the folder structure in the user's home, hash functions, syntactic transaction verification, and the json serializer.</description>
+    <url>https://github.com/takamaka-dev/wallet-core</url>
+    <inceptionYear>2019</inceptionYear>
+    <organization>
+        <name>AiliA SA</name>
+        <url>https://takamaka.io</url>
+    </organization>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>io.takamaka.wallet</groupId>
+    <artifactId>takamaka-core-wallet</artifactId>
+    <version>0.9-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>gio-ant</id>
+            <name>Giovanni Antino</name>
+            <email>giovanni.antino@takamaka.io</email>
+        </developer>
+        <developer>
+            <id>iris-dimni</id>
+            <name>Iris Dimni</name>
+            <email>iris.dimni@takamaka.io</email>
+        </developer>
+        <developer>
+            <id>zaikeneim</id>
+            <name>Alessandro Pasi</name>
+            <email>alessandro.pasi@takamaka.io</email>
+        </developer>
+        <developer>
+            <name>Francesco Pasetto</name>
+            <email>francesco.pasetto@takamaka.io</email>
+        </developer>
+        <developer>
+            <id>takamaka-dev</id>
+            <name>Takamaka Dev</name>
+            <email>tech@takamaka.io</email>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git@github.com:takamaka-dev/wallet-core.git</connection>
+        <developerConnection>scm:git@github.com:takamaka-dev/wallet-core.git</developerConnection>
+        <url>https://github.com/takamaka-dev/wallet-core/tree/master</url>
+    </scm>
+    <!-- build -->
+    
     <!-- dep -->
     <dependencies>
         <dependency>
