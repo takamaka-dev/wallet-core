@@ -78,6 +78,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
                     initWallet("Password");
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error name", ex);
+                    throw new UnlockWalletException("instance error name", ex);
                 }
                 isInitialized = true;
             }
