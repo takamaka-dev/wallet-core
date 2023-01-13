@@ -238,8 +238,9 @@ public class WalletHelper {
      * @throws NoSuchAlgorithmException
      * @throws InvalidKeyException
      * @throws NoSuchPaddingException
+     * @throws io.takamaka.wallet.exceptions.WalletException
      */
-    public static Path importKeyFromWords(List<String> words, Path path, String filename, KeyContexts.WalletCypher cypher, String newPassword) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
+    public static Path importKeyFromWords(List<String> words, Path path, String filename, KeyContexts.WalletCypher cypher, String newPassword) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException, WalletException {
         String seed;
         try {
             seed = SeedGenerator.generateSeedPWH(words);
@@ -253,8 +254,8 @@ public class WalletHelper {
             return walltePath;
         } catch (HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException | NoSuchProviderException | IllegalBlockSizeException | BadPaddingException | IOException ex) {
             log.error("import key error", ex);
+            throw new WalletException("import key error", ex);
         }
-        return null;
     }
 
     public static boolean verifyWordsIntegrity(List<String> words) {
