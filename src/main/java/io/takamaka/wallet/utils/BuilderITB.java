@@ -146,12 +146,11 @@ public class BuilderITB {
     /**
      *
      * @param from
-     * @param to
      * @param message
      * @param notBefore
      * @return
      */
-    public static InternalTransactionBean blob(String from, String to, String message, Date notBefore) {
+    public static InternalTransactionBean blob(String from, String message, Date notBefore) {
 
         try {
             InternalTransactionBean result = BuilderITB.common(KeyContexts.TransactionType.BLOB, notBefore);
@@ -189,12 +188,11 @@ public class BuilderITB {
     /**
      *
      * @param from
-     * @param to
      * @param message
      * @return
      */
-    public static InternalTransactionBean blob(String from, String to, String message) {
-        return BuilderITB.blob(from, to, message, new Date());
+    public static InternalTransactionBean blob(String from, String message) {
+        return BuilderITB.blob(from, message, new Date());
     }
 
     /**
@@ -242,14 +240,14 @@ public class BuilderITB {
      * @param notBefore
      * @return
      */
-    public static InternalTransactionBean registerMain(String from, String to, String message, Date notBefore) {
+    public static InternalTransactionBean registerMain(String from, String message, Date notBefore) {
 
         try {
             InternalTransactionBean result = BuilderITB.common(KeyContexts.TransactionType.REGISTER_MAIN, notBefore);
             result.setFrom(from);
-            if (!StringUtils.isNullOrWhiteSpace(to)) {
-                result.setTo(to);
-            }
+//            if (!TkmTextUtils.isNullOrBlank(to)) {
+//                result.setTo(to);
+//            }
             result.setMessage(message);
             result.setTransactionHash(TkmTextUtils.internalTransactionBeanHash(result));
 
@@ -266,8 +264,8 @@ public class BuilderITB {
      * @param message
      * @return
      */
-    public static InternalTransactionBean registerMain(String from, String to, String message) {
-        return BuilderITB.registerMain(from, to, message, new Date());
+    public static InternalTransactionBean registerMain(String from, String message) {
+        return BuilderITB.registerMain(from, message, new Date());
     }
 
     /**
@@ -277,14 +275,14 @@ public class BuilderITB {
      * @param notBefore
      * @return
      */
-    public static InternalTransactionBean registerOverflow(String from, String to, String message, Date notBefore) {
+    public static InternalTransactionBean registerOverflow(String from, String message, Date notBefore) {
 
         try {
             InternalTransactionBean result = BuilderITB.common(KeyContexts.TransactionType.REGISTER_OVERFLOW, notBefore);
             result.setFrom(from);
-            if (!StringUtils.isNullOrWhiteSpace(to)) {
-                result.setTo(to);
-            }
+//            if (!TkmTextUtils.isNullOrBlank(to)) {
+//                result.setTo(to);
+//            }
             result.setMessage(message);
             result.setTransactionHash(TkmTextUtils.internalTransactionBeanHash(result));
 
@@ -301,8 +299,8 @@ public class BuilderITB {
      * @param message
      * @return
      */
-    public static InternalTransactionBean registerOverflow(String from, String to, String message) {
-        return BuilderITB.registerOverflow(from, message, to, new Date());
+    public static InternalTransactionBean registerOverflow(String from, String message) {
+        return BuilderITB.registerOverflow(from, message, new Date());
     }
 
     /**
@@ -729,10 +727,10 @@ public class BuilderITB {
                 itb = BuilderITB.declaration(to, greenValue, redValue, message);
                 break;
             case REGISTER_MAIN:
-                itb = BuilderITB.registerMain(from, to, message);
+                itb = BuilderITB.registerMain(from, message);
                 break;
             case REGISTER_OVERFLOW:
-                itb = BuilderITB.registerOverflow(from, to, message);
+                itb = BuilderITB.registerOverflow(from, message);
                 break;
             case DEREGISTER_OVERFLOW:
                 itb = BuilderITB.deregisterOverflow(from, message);
@@ -753,7 +751,7 @@ public class BuilderITB {
                 itb = BuilderITB.stake(from, to, greenValue, message);
                 break;
             case BLOB:
-                itb = BuilderITB.blob(from, to, message);
+                itb = BuilderITB.blob(from, message);
                 break;
             default:
                 throw new TransactionNotYetImplementedException("NOT YET IMPLEMENTED: " + type.name());
