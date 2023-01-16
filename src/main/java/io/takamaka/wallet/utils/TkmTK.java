@@ -6,8 +6,12 @@ package io.takamaka.wallet.utils;
 
 import io.takamaka.wallet.beans.FeeBean;
 import java.math.BigInteger;
+import java.util.Date;
 
 /**
+ * In the takamaka blockchain, values are represented in nanoTK, which means
+ * that to transfer 1 TK (a red token or a green token) you need to multiply
+ * this value by 10^9.
  *
  * @author Giovanni Antino giovanni.antino@takamaka.io
  */
@@ -67,6 +71,26 @@ public class TkmTK {
             String reminder = String.format("%09d", integerAndDecimal[1]);
             return integerAndDecimal[0].toString() + "," + reminder;
         }
+    }
+
+    /**
+     * In the takamaka blockchain each transaction has a time limit beyond which
+     * it cannot be included in a block. The transaction timer must be formatted
+     * as unix timestamp (with milliseconds) and set to between "current time"
+     * and "current time + 10 minutes". This enables the transaction to be
+     * included in the first available block for the next 10 minutes. Creating
+     * transactions with timer set to current time might work well for local
+     * testing but is unlikely to function when interacting with remote servers.
+     * To give a "sensible" inclusion window to the transaction and to account
+     * for possible clock errors of the nodes, the device doing the sending, and
+     * network transport times, it is recommended to place the transaction in
+     * the middle of the interval. To do this simply add 60000L * 5 (5 minutes)
+     * to the NOW(), current time.
+     *
+     * @return
+     */
+    public static final Date getTransactionTime() {
+        return new Date((new Date()).getTime() + 60000L * 5);
     }
 
 }
