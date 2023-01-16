@@ -13,6 +13,8 @@ import io.takamaka.wallet.utils.BuilderITB;
 import io.takamaka.wallet.utils.KeyContexts;
 import io.takamaka.wallet.utils.TkmTextUtils;
 import io.takamaka.wallet.utils.TkmWallet;
+import io.takamaka.wallet.utils.TransactionFeeCalculator;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.concurrent.ConcurrentSkipListMap;
 import lombok.extern.slf4j.Slf4j;
@@ -455,4 +457,13 @@ public class WalletTest {
         //fail("The test case is a prototype.");
     }
 
+    @Test
+    public void feeCalc() {
+        Double nanoToUnit = Double.valueOf(Math.pow(10, 9));
+        BigInteger bNanoToUnit = new BigInteger(nanoToUnit.longValue() + "");
+        BigDecimal costInTK = TransactionFeeCalculator.getCostInTK(BigInteger.ONE.multiply(bNanoToUnit), BigInteger.TWO.multiply(bNanoToUnit), BigInteger.TEN.multiply(bNanoToUnit));
+        log.info(costInTK.toString());
+        assertTrue(costInTK.compareTo(new BigDecimal(new BigInteger("13"))) == 0);
+
+    }
 }

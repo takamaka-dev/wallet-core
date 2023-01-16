@@ -18,6 +18,7 @@ package io.takamaka.wallet.utils;
 import io.takamaka.wallet.beans.FeeBean;
 import io.takamaka.wallet.beans.TransactionBox;
 import io.takamaka.wallet.exceptions.WalletException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import lombok.extern.slf4j.Slf4j;
 
@@ -80,6 +81,14 @@ public class TransactionFeeCalculator {
             throw new WalletException("null tbox");
         }
         return ret;
+    }
+
+    public static final BigDecimal getCostInTK(BigInteger cpuCost, BigInteger memCost, BigInteger diskCost) {
+        return new BigDecimal((cpuCost.add(memCost.add(diskCost)))).movePointLeft(DefaultInitParameters.NUMBER_OF_ZEROS);
+    }
+
+    public static final BigDecimal getCostInTK(FeeBean fb) {
+        return getCostInTK(fb.getCpu(), fb.getMemory(), fb.getDisk());
     }
 
 }
