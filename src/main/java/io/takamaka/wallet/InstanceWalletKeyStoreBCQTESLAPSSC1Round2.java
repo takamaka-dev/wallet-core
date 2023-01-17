@@ -62,12 +62,28 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
     private final Object getKeyPairAtIndexLock = new Object();
     private final Object getPublicKeyAtIndexHexLock = new Object();
     private final Object getPublicKeyAtIndexByteLock = new Object();
-
+    
+    /**
+     * Method to get the cypher used in the current wallet.
+     *
+     * @return the cypher used in the wallet
+     */
     @Override
     public KeyContexts.WalletCypher getWalletCypher() {
         return walletCypher;
     }
-
+    /**
+     * Constructor for InstanceWalletKeyStoreBCQTESLAPSSC1Round2.
+     *
+     * It initializes the collections for key pairs and public keys, and calls
+     * initWallet method to initialize or load an existing wallet using a
+     * default hardcoded password
+     *
+     * @param walletName the name of the wallet file
+     * @throws UnlockWalletException if there is an error with unlocking the
+     * wallet
+     * @throws WalletException 
+     */
     public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName) throws UnlockWalletException, WalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
@@ -85,7 +101,19 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
             }
         }
     }
-
+    
+    /**
+     * Constructor for InstanceWalletKeyStoreBCQTESLAPSSC1Round2.
+     *
+     * It initializes the collections for key pairs and public keys, and calls
+     * initWallet method to initialize or load an existing wallet
+     *
+     * @param walletName the name of the wallet file
+     * @param password the password used to encrypt the keyfile
+     * @throws UnlockWalletException if there is an error with unlocking the
+     * wallet
+     * @throws WalletException 
+     */
     public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, String password) throws UnlockWalletException, WalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
@@ -104,6 +132,19 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         }
     }
 
+    /**
+     * Constructor for InstanceWalletKeyStoreBCQTESLAPSSC1Round2.
+     *
+     * It initializes the collections for key pairs and public keys, and calls
+     * initWallet method to initialize or load an existing wallet
+     *
+     * @param walletName the name of the wallet file
+     * @param nCharSeed the number of characters for the seed
+     * @throws UnlockWalletException if there is an error with unlocking the
+     * wallet
+     * @throws WalletEmptySeedException if the seed is empty
+     * @throws WalletBurnedException if the seed is "burned"
+     */
     public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, int nCharSeed) throws UnlockWalletException, WalletBurnedException, WalletEmptySeedException {
         synchronized (constructorLock) {
             if (!isInitialized) {
@@ -121,7 +162,31 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
             }
         }
     }
-
+    
+    /**
+     * Initializes a new wallet or loads an existing one
+     *
+     * If the wallet directory does not exist, it will be created If the wallet
+     * file does not exist, a new seed of alphabetic characters will be
+     * generated, and the seed will be written to the wallet file If the wallet
+     * file exists, the seed is read from the file If the seed is "burned",
+     * WalletBurnedException is thrown If the seed is empty,
+     * WalletEmptySeedException is thrown
+     *
+     * @param nCharSeed number of characters for the seed
+     * @throws IOException if there is an error reading or writing to the file
+     * @throws NoSuchAlgorithmException if the algorithm specified is not
+     * available
+     * @throws HashEncodeException if an error occurs while encoding
+     * @throws InvalidKeySpecException if an error occurs while generating the
+     * key
+     * @throws HashAlgorithmNotFoundException if an error occurs while
+     * generating the key
+     * @throws HashProviderNotFoundException if an error occurs while generating
+     * the key
+     * @throws WalletBurnedException if the seed is "burned"
+     * @throws WalletEmptySeed
+     */
     private void initWallet(int nCharSeed) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletBurnedException, WalletEmptySeedException, WalletException {
         if (!FileHelper.walletDirExists()) {
             FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
@@ -144,6 +209,31 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         }
     }
 
+    /**
+     * Initializes a new wallet or loads an existing one
+     *
+     * If the wallet directory does not exist, it will be created If the wallet
+     * file does not exist, a new seed and words will be generated using the
+     * SeedGenerator and the seed will be written to the wallet file using the
+     * WalletHelper If the wallet file exists, the seed is read from the file
+     * using the WalletHelper
+     *
+     * @param password The password to be used for encrypting the keyfile
+     * @throws IOException if there is an error reading or writing to the file
+     * @throws NoSuchAlgorithmException if the algorithm specified is not
+     * available
+     * @throws HashEncodeException if an error occurs while encoding
+     * @throws InvalidKeySpecException if an error occurs while generating the
+     * key
+     * @throws HashAlgorithmNotFoundException if an error occurs while
+     * generating the key
+     * @throws HashProviderNotFoundException if an error occurs while generating
+     * the key
+     * @throws UnlockWalletException if there is an error with unlocking the
+     * wallet
+     * @throws NoSuchProviderException if the provider specified is not
+     * available
+     */
     private void initWallet(String password) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletException {
         if (!FileHelper.walletDirExists()) {
             FileHelper.createDir(FileHelper.getDefaultWalletDirectoryPath());
@@ -178,6 +268,17 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         }
     }
 
+    /**
+     * Retrieve the keypair at a specific index in the wallet.
+     *
+     * If the keypair is not yet stored in the signKeys collection, it will be
+     * generated using BCQTESLAKeyPairGenerator, initialized with a seed and an
+     * index, then added to the signKeys collection
+     *
+     * @param index index of the keypair to be retrieved
+     * @return the keypair at the given index
+     * @throws InvalidWalletIndexException if the index is not valid
+     */
     @Override
     public AsymmetricCipherKeyPair getKeyPairAtIndex(int i) throws InvalidWalletIndexException {
         if (Security.getProvider("BCPQC") == null) {
@@ -195,6 +296,19 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         return signKeys.get(i);
     }
 
+    /**
+     * Retrieve the public key at a specific index in the wallet in URL-safe
+     * Base64 format.
+     *
+     * If the key is not yet stored in the hexPublicKeys collection, it will be
+     * retrieved from the keypair collection and encoded in URL-safe Base64
+     * format before being added to the hexPublicKeys collection
+     *
+     * @param index index of the key to be retrieved
+     * @return the public key at the given index in URL-safe Base64 format
+     * @throws InvalidWalletIndexException if the index is not valid
+     * @throws PublicKeySerializzationException if the key cannot be serialized
+     */
     @Override
     public String getPublicKeyAtIndexURL64(int i) throws InvalidWalletIndexException, PublicKeySerializzationException {
         if (!hexPublicKeys.containsKey(i)) {
@@ -212,6 +326,19 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         return hexPublicKeys.get(i);
     }
 
+    
+    /**
+     * Retrieve the public key at a specific index in the wallet in byte format.
+     *
+     * If the key is not yet stored in the bytePublicKeys collection, it will be
+     * retrieved from the keypair collection and encoded in byte format before
+     * being added to the bytePublicKeys collection
+     *
+     * @param index index of the key to be retrieved
+     * @return the public key at the given index in byte format
+     * @throws InvalidWalletIndexException if the index is not valid
+     * @throws PublicKeySerializzationException if the key cannot be serialized
+     */
     @Override
     public byte[] getPublicKeyAtIndexByte(int i) throws InvalidWalletIndexException, PublicKeySerializzationException {
         if (!bytePublicKeys.containsKey(i)) {
@@ -227,12 +354,22 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         }
         return bytePublicKeys.get(i);
     }
-
+    /**
+     * Method to get the identifier of the current wallet on system.
+     *
+     * @return the name of the wallet concatenated with the algorithm used.
+     */
     @Override
     public String getCurrentWalletID() {
         return currentWalletName + walletCypher.name();
     }
-
+    
+    /**
+     *
+     * compare two wallet using their file system name
+     *
+     * @param t
+     */
     @Override
     public int compareTo(InstanceWalletKeystoreInterface t) {
         return getCurrentWalletID().compareTo(t.getCurrentWalletID());

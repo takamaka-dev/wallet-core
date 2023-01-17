@@ -28,7 +28,13 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class TransactionFeeCalculator {
-
+    
+    /**
+     * 
+     * @param tbox
+     * @return FeeBean
+     * @throws WalletException 
+     */
     public static FeeBean getFeeBean(TransactionBox tbox) throws WalletException {
         FeeBean ret = new FeeBean();
         //System.out.println(tbox.getTransactionJson());
@@ -82,11 +88,23 @@ public class TransactionFeeCalculator {
         }
         return ret;
     }
-
+    
+    /**
+     * 
+     * @param cpuCost
+     * @param memCost
+     * @param diskCost
+     * @return BigDecimal
+     */
     public static final BigDecimal getCostInTK(BigInteger cpuCost, BigInteger memCost, BigInteger diskCost) {
         return new BigDecimal((cpuCost.add(memCost.add(diskCost)))).movePointLeft(DefaultInitParameters.NUMBER_OF_ZEROS);
     }
-
+    
+    /**
+     * 
+     * @param fb
+     * @return BigDecimal
+     */
     public static final BigDecimal getCostInTK(FeeBean fb) {
         return getCostInTK(fb.getCpu(), fb.getMemory(), fb.getDisk());
     }
