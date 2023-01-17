@@ -275,7 +275,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      * generated using BCQTESLAKeyPairGenerator, initialized with a seed and an
      * index, then added to the signKeys collection
      *
-     * @param index index of the keypair to be retrieved
+     * @param i index of the keypair to be retrieved
      * @return the keypair at the given index
      * @throws InvalidWalletIndexException if the index is not valid
      */
@@ -304,7 +304,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      * retrieved from the keypair collection and encoded in URL-safe Base64
      * format before being added to the hexPublicKeys collection
      *
-     * @param index index of the key to be retrieved
+     * @param i index of the key to be retrieved
      * @return the public key at the given index in URL-safe Base64 format
      * @throws InvalidWalletIndexException if the index is not valid
      * @throws PublicKeySerializzationException if the key cannot be serialized
@@ -334,7 +334,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      * retrieved from the keypair collection and encoded in byte format before
      * being added to the bytePublicKeys collection
      *
-     * @param index index of the key to be retrieved
+     * @param i index of the key to be retrieved
      * @return the public key at the given index in byte format
      * @throws InvalidWalletIndexException if the index is not valid
      * @throws PublicKeySerializzationException if the key cannot be serialized
