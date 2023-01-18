@@ -81,6 +81,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
      * @return the name of the wallet concatenated with the algorithm used.
      */
     @Override
+    
     public String getCurrentWalletID() {
         return currentWalletName + walletCypher.name();
     }
