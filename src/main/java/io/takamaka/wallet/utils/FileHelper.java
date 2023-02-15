@@ -737,7 +737,7 @@ public class FileHelper {
         }
 
         //extract hotmoka base jar
-        extractFromJar(DefaultInitParameters.TAKAMAKA_CODE_JAR_RESOURCE, getHotmokaFilesDirectoryPath());
+        //extractFromJar(DefaultInitParameters.TAKAMAKA_CODE_JAR_RESOURCE, getHotmokaFilesDirectoryPath());
 
         if (!getHotmokaTestDirectoryPath().toFile().isDirectory()) {
             FileHelper.createDir(getHotmokaTestDirectoryPath());
