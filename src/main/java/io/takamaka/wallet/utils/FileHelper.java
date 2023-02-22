@@ -1181,7 +1181,7 @@ public class FileHelper {
     public static final void delete(Path file) throws IOException {
         File f = new File(file.toString());
         if (f.isDirectory()) {
-            throw new IOException("Failed, i can't deleate a direcotry: " + f);
+            throw new IOException("Failed, i can't delete a directory: " + f);
         }
         if (!f.delete()) {
             throw new FileNotFoundException("Failed to delete file: " + f);
