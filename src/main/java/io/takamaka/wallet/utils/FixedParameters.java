@@ -302,7 +302,7 @@ public class FixedParameters {
     /**
      * message digest 128
      */
-    public static final String HASH_128_ALGORITHM = "SHA3-128";
+    public static final String HASH_128_ALGORITHM = "RIPEMD128";
     
     /**
      * message digest 256

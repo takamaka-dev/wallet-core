@@ -5,6 +5,7 @@
 package io.takamaka.wallet.utils;
 
 import io.takamaka.wallet.beans.FeeBean;
+import static io.takamaka.wallet.utils.KeyContexts.NUMBER_OF_ZEROS_SHIFT_DECIMAL;
 import java.math.BigInteger;
 import java.util.Date;
 
@@ -26,7 +27,10 @@ public class TkmTK {
     }
 
     public static BigInteger unitTK(String unit) {
-        return new BigInteger(unit).multiply(KeyContexts.NUMBER_OF_ZEROS_SHIFT_DECIMAL);
+        BigInteger zer;
+        int NUMBER_OF_ZEROS = DefaultInitParameters.NUMBER_OF_ZEROS;
+        zer = BigInteger.TEN.pow(NUMBER_OF_ZEROS);
+        return new BigInteger(unit).multiply(zer);
     }
 
     /**

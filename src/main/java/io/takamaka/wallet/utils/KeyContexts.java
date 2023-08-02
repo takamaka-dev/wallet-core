@@ -47,7 +47,7 @@ public final class KeyContexts {
      * want to get the value equivalent to two green tokens you need to multiply
      * 2 * {@code NUMBER_OF_ZEROS_SHIFT_DECIMAL}
      */
-    public static final BigInteger NUMBER_OF_ZEROS_SHIFT_DECIMAL = BigInteger.TEN.pow(DefaultInitParameters.NUMBER_OF_ZEROS);
+    public static BigInteger NUMBER_OF_ZEROS_SHIFT_DECIMAL = BigInteger.TEN.pow(DefaultInitParameters.NUMBER_OF_ZEROS);
 
     /**
      *

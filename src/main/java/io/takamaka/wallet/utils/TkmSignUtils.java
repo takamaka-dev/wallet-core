@@ -44,7 +44,7 @@ import static org.apache.commons.codec.digest.DigestUtils.digest;
  */
 @Slf4j
 public class TkmSignUtils {
-    
+
     public static final AsymmetricCipherKeyPair stringPublicKeyToKeyPairBCEd25519(String publicKey) throws KeyDecodeException {
         try {
             UrlBase64 b64e = new UrlBase64();
@@ -59,7 +59,7 @@ public class TkmSignUtils {
             throw new KeyDecodeException(ex);
         }
     }
-    
+
     public static final AsymmetricCipherKeyPair stringPublicKeyToKeyPairBCQTESLAPSSC1(String publicKey) throws KeyDecodeException {
         try {
             //UrlBase64 b64e = new UrlBase64();
@@ -76,11 +76,31 @@ public class TkmSignUtils {
     }
 
     /**
-     * return the base64 rappresentation of SHA3-128 input hash
+     * return the base64 rappresentation of SHAKE 128 output hash
      *
      */
     public static final String Hash128(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
-        return TkmSignUtils.Hash(input, FixedParameters.HASH_256_ALGORITHM);
+        int bitLen = 128;
+        byte[] byIn = fromStringToByteArray(input);
+        SHAKEDigest sh = new SHAKEDigest(bitLen);
+        sh.reset();
+        sh.update(byIn, 0, byIn.length);
+        byte[] byteRes = new byte[bitLen / 8];
+        sh.doFinal(byteRes, 0, bitLen / 8);
+        //MessageDigest digest = MessageDigest.getInstance(hashType, BouncyCastleProvider.PROVIDER_NAME);
+        ByteBuffer buffer = ByteBuffer.allocate(bitLen / 8);
+        buffer.put(byteRes);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(bitLen);
+        try {
+            UrlBase64.encode(byteRes, baos);
+        } catch (IOException ex) {
+            throw new HashEncodeException(ex);
+        }
+        try {
+            return new String(baos.toByteArray(), FixedParameters.CHARSET.name());
+        } catch (UnsupportedEncodingException ex) {
+            throw new HashEncodeException(ex);
+        }
     }
 
     /**
@@ -92,31 +112,31 @@ public class TkmSignUtils {
     public static final String Hash256(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.Hash(input, FixedParameters.HASH_256_ALGORITHM);
     }
-    
+
     public static final String Hash256B64URL(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return Hash256(input);
     }
-    
+
     public static final String Hash384(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.Hash(input, FixedParameters.HASH_384_ALGORITHM);
     }
-    
+
     public static final String Hash384B64URL(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return Hash384(input);
     }
-    
+
     public static final String Hash512(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.Hash(input, FixedParameters.HASH_512_ALGORITHM);
     }
-    
+
     public static final String Hash512B64URL(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return Hash512(input);
     }
-    
+
     public static final byte[] Hash256byte(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.HashByte(input, FixedParameters.HASH_256_ALGORITHM);
     }
-    
+
     public static final byte[] Hash384byte(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.HashByte(input, FixedParameters.HASH_384_ALGORITHM);
     }
@@ -126,7 +146,7 @@ public class TkmSignUtils {
      *
      * Hash384ToHex to bookmark and sohrtened public addresses (meta addresses)
      *
-     * @param input 
+     * @param input
      * @return
      */
     public static final String getShortenedAddr(String input) {
@@ -138,11 +158,11 @@ public class TkmSignUtils {
             return null;
         }
     }
-    
+
     public static final byte[] Hash512byte(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.HashByte(input, FixedParameters.HASH_512_ALGORITHM);
     }
-    
+
     public static final String PWHashB64(String input, String salt, int iterations, int bitLegnthKey) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException, InvalidKeySpecException, NoSuchAlgorithmException {
         try {
             PBEKeySpec spec = new PBEKeySpec(input.toCharArray(), salt.getBytes(), iterations, bitLegnthKey);
@@ -160,7 +180,7 @@ public class TkmSignUtils {
             return null;
         }
     }
-    
+
     public static final byte[] PWHash(String input, String salt, int iterations, int bitLegnthKey) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException, InvalidKeySpecException, NoSuchAlgorithmException {
         PBEKeySpec spec = new PBEKeySpec(input.toCharArray(), salt.getBytes(), iterations, bitLegnthKey);
         SecretKeyFactory skf = SecretKeyFactory.getInstance(FixedParameters.HASH_PWH_ALGORITHM);
@@ -195,13 +215,13 @@ public class TkmSignUtils {
             String out = baos.toString(FixedParameters.CHARSET.name());
             baos.close();
             return out;
-            
+
         } catch (Exception ex) {
             log.error("hash funcion error", ex);
             throw new HashEncodeException(ex);
         }
     }
-    
+
     public static final byte[] Hash256Byte(byte[] input, String hashType) throws NoSuchAlgorithmException, NoSuchProviderException {
         byte[] result = null;
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
@@ -216,7 +236,7 @@ public class TkmSignUtils {
         bb.clear();
         return result;
     }
-    
+
     private static byte[] HashByte(String input, String hashType) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         try {
             //Base64 b64enc = new Base64();
@@ -236,7 +256,7 @@ public class TkmSignUtils {
             byte[] out = baos.toByteArray();
             baos.close();
             return out;
-            
+
         } catch (Exception ex) {
             log.error("hash to byte error", ex);
             throw new HashEncodeException(ex);
@@ -253,15 +273,15 @@ public class TkmSignUtils {
     public static final String Hash256ToHex(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.HashToHex(input, FixedParameters.HASH_256_ALGORITHM);
     }
-    
+
     public static final String Hash384ToHex(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.HashToHex(input, FixedParameters.HASH_384_ALGORITHM);
     }
-    
+
     public static final String Hash512ToHex(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.HashToHex(input, FixedParameters.HASH_512_ALGORITHM);
     }
-    
+
     public static final String fromByteArrayToB64URL(byte[] input) {
         String out = null;
         try {
@@ -276,7 +296,7 @@ public class TkmSignUtils {
         }
         return out;
     }
-    
+
     private static final byte[] streamToHash(InputStream in, String hashType) throws NoSuchAlgorithmException, NoSuchProviderException, IOException {
         byte[] res = null;
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
@@ -288,7 +308,7 @@ public class TkmSignUtils {
         res = digestRes;
         return res;
     }
-    
+
     public static final byte[] StreamToHash256Byte(InputStream in) {
         try {
             return streamToHash(in, FixedParameters.HASH_256_ALGORITHM);
@@ -297,7 +317,7 @@ public class TkmSignUtils {
             return null;
         }
     }
-    
+
     public static final byte[] StreamToHash160Byte(InputStream in) {
         try {
             return streamToHash(in, FixedParameters.HASH_160_ALGORITHM);
@@ -306,7 +326,7 @@ public class TkmSignUtils {
             return null;
         }
     }
-    
+
     public static final byte[] StreamToHash384Byte(InputStream in) {
         try {
             return streamToHash(in, FixedParameters.HASH_384_ALGORITHM);
@@ -315,7 +335,7 @@ public class TkmSignUtils {
             return null;
         }
     }
-    
+
     public static final byte[] StreamToHash512Byte(InputStream in) {
         try {
             return streamToHash(in, FixedParameters.HASH_512_ALGORITHM);
@@ -324,7 +344,7 @@ public class TkmSignUtils {
             return null;
         }
     }
-    
+
     public static final String fromByteArrayToB64(byte[] input) {
         String out = null;
         try {
@@ -339,7 +359,7 @@ public class TkmSignUtils {
         }
         return out;
     }
-    
+
     private static String HashToHex(String input, String hashType) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         try {
             Hex henc = new Hex();
@@ -357,7 +377,7 @@ public class TkmSignUtils {
             Hex.encode(digest.digest(), baos);
             bb.clear();
             return baos.toString(FixedParameters.CHARSET.name());
-            
+
         } catch (Exception ex) {
             log.error("hash to hex", ex);
             throw new HashEncodeException(ex);
@@ -377,7 +397,7 @@ public class TkmSignUtils {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             UrlBase64.decode(input, baos);
             res = baos.toByteArray();
-            
+
             baos.close();
         } catch (Exception ex) {
             log.error("base64url to byte array error", ex);
@@ -398,7 +418,7 @@ public class TkmSignUtils {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             Base64.decode(input, baos);
             res = baos.toByteArray();
-            
+
             baos.close();
         } catch (Exception ex) {
             log.error("base64 to byte array error", ex);
@@ -433,7 +453,7 @@ public class TkmSignUtils {
         }
         return null;
     }
-    
+
     public static final String fromB64URLToB64(String b64URLKey) {
         byte[] b64URLToByte = fromB64URLToByteArray(b64URLKey);
         if (b64URLToByte != null) {
@@ -441,7 +461,7 @@ public class TkmSignUtils {
         }
         return null;
     }
-    
+
     public static final String fromB64ToB64URL(String b64URL) {
         byte[] b64ToByte = fromB64ToByteArray(b64URL);
         if (b64ToByte != null) {
@@ -449,7 +469,7 @@ public class TkmSignUtils {
         }
         return null;
     }
-    
+
     public static final String fromHexToB64(String hexMessage) {
         String res = null;
         try {
@@ -479,12 +499,10 @@ public class TkmSignUtils {
             res = baos.toString(FixedParameters.CHARSET.name());
             baos.close();
         } catch (Exception ex) {
-           log.error("from byte array to hex string error", ex);
+            log.error("from byte array to hex string error", ex);
         }
         return res;
     }
-    
-
 
     /**
      * Return the hex of the Ripemd160 hash of the input string.
@@ -500,7 +518,7 @@ public class TkmSignUtils {
         }
         return null;
     }
-    
+
     public static final String fromStringToHexString(String message) {
         String res = null;
         try {
@@ -533,7 +551,7 @@ public class TkmSignUtils {
         }
         return res;
     }
-    
+
     public static final String fromHexToString(String hexMessage) {
         String res = null;
         try {
@@ -543,37 +561,37 @@ public class TkmSignUtils {
             res = baos.toString(FixedParameters.CHARSET.name());
             baos.close();
         } catch (Exception ex) {
-           log.error("from hex to string error", ex);
+            log.error("from hex to string error", ex);
         }
         return res;
     }
-    
+
     public static final byte[] fromStringToByteArray(String message) {
         return message.getBytes(FixedParameters.CHARSET);
     }
-    
+
     public static final char[] fromStringToCharArray(String message) {
         return message.toCharArray();//message.getBytes(FixedParameters.CHARSET);
     }
-    
+
     public static final String fromCharArrayToString(char[] message) {
         return new String(message);
     }
-    
+
     public static final String fromStringToBase64URL(String message) {
         return fromByteArrayToB64URL(fromStringToByteArray(message));
     }
-    
+
     public static final String fromBase64URLToString(String message) {
         try {
             return new String(fromB64URLToByteArray(message), FixedParameters.CHARSET.name());
-            
+
         } catch (UnsupportedEncodingException ex) {
             log.error("from b46url to string error", ex);
             return null;
         }
     }
-    
+
     private static long textToLongID(String input, int bitLen) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         try {
             if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
@@ -604,7 +622,7 @@ public class TkmSignUtils {
         long nextLong = RandomUtils.nextLong(1, Long.MAX_VALUE);
         return nextLong;
     }
-    
+
     public static final long getLongID(String text) {
         try {
             return textToLongID(text, 256);
@@ -613,7 +631,7 @@ public class TkmSignUtils {
             return 0L;
         }
     }
-    
+
     public static final String getHexCRC(String addressBASE64URL) {
         System.out.println("bytes: " + Arrays.toString(fromB64URLToByteArray(addressBASE64URL)));
         byte[] ba = fromB64URLToByteArray(addressBASE64URL);
@@ -621,12 +639,12 @@ public class TkmSignUtils {
         for (int i = 0; i < ba.length; i++) {
             byte b = ba[i];
             ia[i] = ((int) b) & 0xff;
-            
+
         }
         System.out.println("AI: " + Arrays.toString(ia));
         return getHexCRC(fromB64URLToByteArray(addressBASE64URL));
     }
-    
+
     private static final String getHexCRC(byte[] input) {
         Checksum checksum = new CRC32();
         checksum.reset();
@@ -635,9 +653,9 @@ public class TkmSignUtils {
         System.out.println("LONG: " + value);
         return Long.toHexString(value).substring(0, 4);
     }
-    
+
     public static final void main(String[] args) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         System.out.println(getLongID("gatto"));
     }
-    
+
 }
