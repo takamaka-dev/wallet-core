@@ -16,14 +16,22 @@ import io.takamaka.wallet.utils.TkmWallet;
 import io.takamaka.wallet.utils.TransactionFeeCalculator;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentSkipListMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.log4j.BasicConfigurator;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.bouncycastle.crypto.agreement.X25519Agreement;
+import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Test;
 import static org.junit.Assert.*;
 
 /**
@@ -41,6 +49,9 @@ public class WalletTest {
 
     static ConcurrentSkipListMap<KeyContexts.WalletCypher, InstanceWalletKeystoreInterface> walletsFrom;
     static ConcurrentSkipListMap<KeyContexts.WalletCypher, InstanceWalletKeystoreInterface> walletsTo;
+    static ConcurrentSkipListMap<Integer, InstanceWalletKeystoreInterface> walletsKeyExchangeToDHX;
+    static ConcurrentSkipListMap<Integer, InstanceWalletKeystoreInterface> walletsKeyExchangeFromDHX;
+
     static KeyContexts.TransactionType[] trxTypes = new KeyContexts.TransactionType[]{
         KeyContexts.TransactionType.PAY,
         KeyContexts.TransactionType.DECLARATION,
@@ -61,16 +72,20 @@ public class WalletTest {
         BasicConfigurator.configure();
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws WalletException {
         walletsFrom = new ConcurrentSkipListMap<>();
+        walletsKeyExchangeFromDHX = new ConcurrentSkipListMap<>();
+        walletsKeyExchangeToDHX = new ConcurrentSkipListMap<>();
         walletsFrom.put(KeyContexts.WalletCypher.Ed25519BC, new InstanceWalletKeyStoreBCED25519("Ed25519BC" + "_test_wallet_from"));
         walletsFrom.put(KeyContexts.WalletCypher.BCQTESLA_PS_1, new InstanceWalletKeyStoreBCQTESLAPSSC1Round1("BCQTESLA_PS_1" + "_test_wallet_from"));
         walletsFrom.put(KeyContexts.WalletCypher.BCQTESLA_PS_1_R2, new InstanceWalletKeyStoreBCQTESLAPSSC1Round2("BCQTESLA_PS_1_R2" + "_test_wallet_from"));
+        walletsKeyExchangeFromDHX.put(0, new InstanceWalletKeyStoreBCCurve25519("BCCURVE25519" + "_test_wallet_from"));
         walletsTo = new ConcurrentSkipListMap<>();
         walletsTo.put(KeyContexts.WalletCypher.Ed25519BC, new InstanceWalletKeyStoreBCED25519("Ed25519BC" + "_test_wallet_to"));
         walletsTo.put(KeyContexts.WalletCypher.BCQTESLA_PS_1, new InstanceWalletKeyStoreBCQTESLAPSSC1Round1("BCQTESLA_PS_1" + "_test_wallet_to"));
         walletsTo.put(KeyContexts.WalletCypher.BCQTESLA_PS_1_R2, new InstanceWalletKeyStoreBCQTESLAPSSC1Round2("BCQTESLA_PS_1_R2" + "_test_wallet_to"));
+        walletsKeyExchangeToDHX.put(0, new InstanceWalletKeyStoreBCCurve25519("BCCURVE25519" + "_test_wallet_to"));
         messages = new String[][]{
             new String[]{"NULL", null},
             new String[]{"GENERIC", "the quick brown fox jumps over the lazy dog 1234567890"},
@@ -84,15 +99,73 @@ public class WalletTest {
         };
     }
 
-    @AfterClass
+    /**
+     * reference example
+     * https://github.com/firatkucuk/diffie-hellman-helloworld/blob/main/src/main/java/com/github/firatkucuk/diffie_hellman_helloworld/Main.java
+     * https://gist.github.com/wuyongzheng/0e2ed6d8a075153efcd3
+     * https://www.demo2s.com/java/java-bouncycastle-dhuparameterspec-tutorial-with-examples.html
+     * https://www.demo2s.com/java/java-org-bouncycastle-crypto-agreement-x25519agreement.html
+     * https://www.demo2s.com/java/java-bouncycastle-x25519agreement-calculateagreement-cipherparameters.html
+     *
+     * @throws WalletException
+     */
+    @Test
+    public void testSecretExchange() throws WalletException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException {
+        for (Integer aliceId : walletsKeyExchangeFromDHX.keySet()) {
+            for (Integer bobId : walletsKeyExchangeToDHX.keySet()) {
+                InstanceWalletKeystoreInterface aliceWallet = walletsKeyExchangeFromDHX.get(aliceId);
+                InstanceWalletKeystoreInterface bobWallet = walletsKeyExchangeToDHX.get(bobId);
+
+                //String keyFromAliceToBob = 
+                // 1. ------------------------------------------------------------------
+                // This is Alice and Bob
+                // Alice and Bob want to chat securely. But how?
+                //
+                //    O                                        O
+                //   /|\                                      /|\
+                //   / \                                      / \
+                //
+                //  ALICE                                     BOB
+                //  _ PUBLIC KEY                              _ PUBLIC KEY
+                //  _ PRIVATE KEY                             _ PRIVATE KEY
+                // 2. ------------------------------------------------------------------
+                // Alice and Bob generate public and private keys.
+                final String alicePK = aliceWallet.getPublicKeyAtIndexURL64(aliceId);
+                log.info("alice PK " + alicePK);
+                final String bobPK = bobWallet.getPublicKeyAtIndexURL64(bobId);
+                log.info("bob PK " + bobPK);
+                // 3. ------------------------------------------------------------------
+                // Alice and Bob exchange public keys with each other.
+                // 4. ------------------------------------------------------------------
+                // Alice generates common secret key via using her private key and Bob's public key.
+                // Bob generates common secret key via using his private key and Alice's public key.
+                // Both secret keys are equal without TRANSFERRING. This is the magic of Diffie-Helman algorithm.
+                X25519Agreement agreeA = new X25519Agreement();
+                agreeA.init(aliceWallet.getKeyPairAtIndex(0).getPrivate());
+                byte[] secretA = new byte[agreeA.getAgreementSize()];
+                agreeA.calculateAgreement(bobWallet.getKeyPairAtIndex(0).getPublic(), secretA, 0);
+
+                X25519Agreement agreeB = new X25519Agreement();
+                agreeB.init(bobWallet.getKeyPairAtIndex(0).getPrivate());
+                byte[] secretB = new byte[agreeB.getAgreementSize()];
+                agreeB.calculateAgreement(aliceWallet.getKeyPairAtIndex(0).getPublic(), secretB, 0);
+                //byte[] generatedAliceSecret = TkmKeyExchangeDHBC.generateKeySecret(bobWallet.getPublicKeyAtIndexByte(0), aliceWallet, 0);
+                log.info("alice secret " + Arrays.toString(secretA));
+                log.info("bob   secret " + Arrays.toString(secretB));
+            }
+
+        }
+    }
+
+    @AfterAll
     public static void tearDownClass() {
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
     }
 
@@ -466,4 +539,5 @@ public class WalletTest {
         assertTrue(costInTK.compareTo(new BigDecimal(new BigInteger("13"))) == 0);
 
     }
+
 }

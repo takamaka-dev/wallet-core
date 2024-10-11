@@ -41,6 +41,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.text.RandomStringGenerator;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 
@@ -191,7 +192,11 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round1 implements InstanceWallet
             FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
         }
         if (!FileHelper.fileExists(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName))) {
-            seed = RandomStringUtils.randomAlphabetic(nCharSeed);
+            RandomStringGenerator generator = new RandomStringGenerator.Builder()
+                    .withinRange('0', 'z')
+                    .filteredBy(Character::isLetterOrDigit)
+                    .get();
+            seed = generator.generate(nCharSeed);
             FileHelper.writeStringToFile(FileHelper.getEphemeralWalletDirectoryPath(), currentWalletName, seed, false);
         }
         Path currentWalletPath = Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName);

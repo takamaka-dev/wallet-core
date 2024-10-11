@@ -41,10 +41,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.text.RandomStringGenerator;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
-import org.bouncycastle.crypto.generators.Ed25519KeyPairGenerator;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPairGenerator;
+import org.bouncycastle.crypto.generators.X25519KeyPairGenerator;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
-import org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters;
-import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
+import org.bouncycastle.crypto.params.X25519KeyGenerationParameters;
+//import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
+
 import org.bouncycastle.util.encoders.UrlBase64;
 
 /**
@@ -52,7 +54,7 @@ import org.bouncycastle.util.encoders.UrlBase64;
  * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 @Slf4j
-public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreInterface {
+public class InstanceWalletKeyStoreBCCurve25519 implements InstanceWalletKeystoreInterface {
 
     private Map<Integer, AsymmetricCipherKeyPair> signKeys;
     private Map<Integer, String> hexPublicKeys;
@@ -60,7 +62,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
     private String seed;
     private String currentWalletName;
     private boolean isInitialized; //default to false
-    private final static KeyContexts.WalletCypher walletCypher = KeyContexts.WalletCypher.Ed25519BC;
+    private final static KeyContexts.WalletCypher walletCypher = KeyContexts.WalletCypher.Curve25519BC;
     private final Object constructorLock = new Object();
     private final Object getKeyPairAtIndexLock = new Object();
     private final Object getPublicKeyAtIndexHexLock = new Object();
@@ -98,7 +100,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
      * @throws UnlockWalletException if there is an error with unlocking the
      * wallet
      */
-    public InstanceWalletKeyStoreBCED25519(String walletName) throws UnlockWalletException {
+    public InstanceWalletKeyStoreBCCurve25519(String walletName) throws UnlockWalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
@@ -128,7 +130,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
      * @throws UnlockWalletException if there is an error with unlocking the
      * wallet
      */
-    public InstanceWalletKeyStoreBCED25519(String walletName, String password) throws UnlockWalletException {
+    public InstanceWalletKeyStoreBCCurve25519(String walletName, String password) throws UnlockWalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
@@ -160,7 +162,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
      * @throws WalletEmptySeedException if the seed is empty
      * @throws WalletBurnedException if the seed is "burned"
      */
-    public InstanceWalletKeyStoreBCED25519(String walletName, int nCharForSeed) throws UnlockWalletException, WalletEmptySeedException, WalletBurnedException {
+    public InstanceWalletKeyStoreBCCurve25519(String walletName, int nCharForSeed) throws UnlockWalletException, WalletEmptySeedException, WalletBurnedException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
@@ -218,7 +220,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
                 concat += " " + words.get(i);
             }
 
-            KeyBean kb = new KeyBean("POWSEED", KeyContexts.WalletCypher.Ed25519BC, seed, concat);
+            KeyBean kb = new KeyBean("POWSEED", KeyContexts.WalletCypher.Curve25519BC, seed, concat);
             try {
                 WalletHelper.writeKeyFile(FileHelper.getDefaultWalletDirectoryPath(), currentWalletName, kb, password);
 
@@ -312,12 +314,15 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
         if (!signKeys.containsKey(index)) {
             synchronized (getKeyPairAtIndexLock) {
                 //call key creation
-                Ed25519KeyPairGenerator keyPairGenerator = new Ed25519KeyPairGenerator();
+                //X25519KeyPairGenerator keyPairGenerator = new X25519KeyPairGenerator();
                 if (index < 0 || index >= Integer.MAX_VALUE) {
                     throw new InvalidWalletIndexException("index outside wallet range");
                 }
-                keyPairGenerator.init(new Ed25519KeyGenerationParameters(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1)));
-                signKeys.put(index, keyPairGenerator.generateKeyPair());
+                AsymmetricCipherKeyPairGenerator kpGen = new X25519KeyPairGenerator();
+                kpGen.init(new X25519KeyGenerationParameters(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1)));
+                //new X25519KeyPairGenerator(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1));
+                //keyPairGenerator.init();
+                signKeys.put(index, kpGen.generateKeyPair());
             }
         }
         return signKeys.get(index);
@@ -345,8 +350,8 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
                     UrlBase64 b64e = new UrlBase64();
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
-                    Ed25519PublicKeyParameters publicKey = (Ed25519PublicKeyParameters) aPublic;
-                    b64e.encode(publicKey.getEncoded(), baos);
+                    AsymmetricKeyParameter publicKey = (AsymmetricKeyParameter) aPublic;
+                    //b64e.encode(publicKey.getEncoded(), baos);
                     hexPublicKeys.put(index, baos.toString());
                     baos.close();
                 } catch (IOException ex) {
@@ -380,8 +385,8 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
                     UrlBase64 b64e = new UrlBase64();
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
-                    Ed25519PublicKeyParameters publicKey = (Ed25519PublicKeyParameters) aPublic;
-                    b64e.encode(publicKey.getEncoded(), baos);
+                    //X25519PublicKeyParameters publicKey = (X25519PublicKeyParameters) aPublic;
+                    //b64e.encode(publicKey.getEncoded(), baos);
                     bytePublicKeys.put(index, baos.toByteArray());
                     baos.close();
                 } catch (IOException ex) {

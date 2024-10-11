@@ -41,6 +41,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.text.RandomStringGenerator;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 
@@ -62,7 +63,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
     private final Object getKeyPairAtIndexLock = new Object();
     private final Object getPublicKeyAtIndexHexLock = new Object();
     private final Object getPublicKeyAtIndexByteLock = new Object();
-    
+
     /**
      * Method to get the cypher used in the current wallet.
      *
@@ -72,6 +73,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
     public KeyContexts.WalletCypher getWalletCypher() {
         return walletCypher;
     }
+
     /**
      * Constructor for InstanceWalletKeyStoreBCQTESLAPSSC1Round2.
      *
@@ -82,7 +84,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      * @param walletName the name of the wallet file
      * @throws UnlockWalletException if there is an error with unlocking the
      * wallet
-     * @throws WalletException 
+     * @throws WalletException
      */
     public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName) throws UnlockWalletException, WalletException {
         synchronized (constructorLock) {
@@ -101,7 +103,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
             }
         }
     }
-    
+
     /**
      * Constructor for InstanceWalletKeyStoreBCQTESLAPSSC1Round2.
      *
@@ -112,7 +114,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      * @param password the password used to encrypt the keyfile
      * @throws UnlockWalletException if there is an error with unlocking the
      * wallet
-     * @throws WalletException 
+     * @throws WalletException
      */
     public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, String password) throws UnlockWalletException, WalletException {
         synchronized (constructorLock) {
@@ -162,7 +164,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
             }
         }
     }
-    
+
     /**
      * Initializes a new wallet or loads an existing one
      *
@@ -192,7 +194,11 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
             FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
         }
         if (!FileHelper.fileExists(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName))) {
-            seed = RandomStringUtils.randomAlphabetic(nCharSeed);
+            RandomStringGenerator generator = new RandomStringGenerator.Builder()
+                    .withinRange('0', 'z')
+                    .filteredBy(Character::isLetterOrDigit)
+                    .get();
+            seed = generator.generate(nCharSeed);
             FileHelper.writeStringToFile(FileHelper.getEphemeralWalletDirectoryPath(), currentWalletName, seed, false);
         }
         Path currentWalletPath = Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName);
@@ -326,7 +332,6 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         return hexPublicKeys.get(i);
     }
 
-    
     /**
      * Retrieve the public key at a specific index in the wallet in byte format.
      *
@@ -354,6 +359,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         }
         return bytePublicKeys.get(i);
     }
+
     /**
      * Method to get the identifier of the current wallet on system.
      *
@@ -363,7 +369,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
     public String getCurrentWalletID() {
         return currentWalletName + walletCypher.name();
     }
-    
+
     /**
      *
      * compare two wallet using their file system name

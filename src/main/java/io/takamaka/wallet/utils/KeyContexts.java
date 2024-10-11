@@ -161,7 +161,8 @@ public final class KeyContexts {
         /**
          * bouncy castle, provable secure, I, Round 2
          */
-        BCQTESLA_PS_1_R2
+        BCQTESLA_PS_1_R2,
+        Curve25519BC
     }
 
     /**
