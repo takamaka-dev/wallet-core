@@ -37,6 +37,8 @@ import org.bouncycastle.util.encoders.Base64;
 import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.util.encoders.UrlBase64;
 import static org.apache.commons.codec.digest.DigestUtils.digest;
+import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
 
 /**
  *
@@ -45,9 +47,22 @@ import static org.apache.commons.codec.digest.DigestUtils.digest;
 @Slf4j
 public class TkmSignUtils {
 
+    public static final X25519PublicKeyParameters getPublicKeyParamX25519(String stringPublicKey) throws KeyDecodeException {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            UrlBase64.decode(stringPublicKey, baos);
+            X25519PublicKeyParameters x25519PublicKeyParameters = new X25519PublicKeyParameters(baos.toByteArray());
+            return x25519PublicKeyParameters;
+        } catch (IOException ex) {
+            log.warn("error in conversion from string PublicKey To Key Pair BCEd25519", ex);
+            throw new KeyDecodeException(ex);
+        }
+
+    }
+
     public static final AsymmetricCipherKeyPair stringPublicKeyToKeyPairBCEd25519(String publicKey) throws KeyDecodeException {
         try {
-            UrlBase64 b64e = new UrlBase64();
+            //UrlBase64 b64e = new UrlBase64();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             UrlBase64.decode(publicKey, baos);
             Ed25519PublicKeyParameters edPublicKey = new Ed25519PublicKeyParameters(baos.toByteArray(), 0);

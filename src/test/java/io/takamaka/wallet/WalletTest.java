@@ -7,10 +7,12 @@ package io.takamaka.wallet;
 import io.takamaka.wallet.beans.InternalTransactionBean;
 import io.takamaka.wallet.beans.TransactionBean;
 import io.takamaka.wallet.beans.TransactionBox;
+import io.takamaka.wallet.exceptions.KeyDecodeException;
 import io.takamaka.wallet.exceptions.TransactionNotYetImplementedException;
 import io.takamaka.wallet.exceptions.WalletException;
 import io.takamaka.wallet.utils.BuilderITB;
 import io.takamaka.wallet.utils.KeyContexts;
+import io.takamaka.wallet.utils.TkmSignUtils;
 import io.takamaka.wallet.utils.TkmTextUtils;
 import io.takamaka.wallet.utils.TkmWallet;
 import io.takamaka.wallet.utils.TransactionFeeCalculator;
@@ -25,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.log4j.BasicConfigurator;
 import org.bouncycastle.crypto.agreement.X25519Agreement;
 import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
+import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import org.junit.jupiter.api.AfterEach;
@@ -110,7 +113,7 @@ public class WalletTest {
      * @throws WalletException
      */
     @Test
-    public void testSecretExchange() throws WalletException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException {
+    public void testSecretExchange() throws WalletException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, KeyDecodeException {
         for (Integer aliceId : walletsKeyExchangeFromDHX.keySet()) {
             for (Integer bobId : walletsKeyExchangeToDHX.keySet()) {
                 InstanceWalletKeystoreInterface aliceWallet = walletsKeyExchangeFromDHX.get(aliceId);
@@ -145,13 +148,30 @@ public class WalletTest {
                 byte[] secretA = new byte[agreeA.getAgreementSize()];
                 agreeA.calculateAgreement(bobWallet.getKeyPairAtIndex(0).getPublic(), secretA, 0);
 
-                X25519Agreement agreeB = new X25519Agreement();
-                agreeB.init(bobWallet.getKeyPairAtIndex(0).getPrivate());
-                byte[] secretB = new byte[agreeB.getAgreementSize()];
-                agreeB.calculateAgreement(aliceWallet.getKeyPairAtIndex(0).getPublic(), secretB, 0);
+                //X25519Agreement agreeB = new X25519Agreement();
+                //agreeB.init(bobWallet.getKeyPairAtIndex(0).getPrivate());
+                //byte[] secretB = new byte[agreeB.getAgreementSize()];
+                //agreeB.calculateAgreement(aliceWallet.getKeyPairAtIndex(0).getPublic(), secretB, 0);
                 //byte[] generatedAliceSecret = TkmKeyExchangeDHBC.generateKeySecret(bobWallet.getPublicKeyAtIndexByte(0), aliceWallet, 0);
                 log.info("alice secret " + Arrays.toString(secretA));
-                log.info("bob   secret " + Arrays.toString(secretB));
+                byte[] calculateAgreementBob = TkmCypherProviderBCX25519.calculateAgreement(
+                        bobWallet.getKeyPairAtIndex(0).getPrivate(),
+                        aliceWallet.getKeyPairAtIndex(0).getPublic());
+                log.info("bob   secret " + Arrays.toString(calculateAgreementBob));
+                final String alicePublicKeyAtIndexURL64 = aliceWallet.getPublicKeyAtIndexURL64(0);
+                log.info("alice public byte " + alicePublicKeyAtIndexURL64);
+                final String bobPublicKeyAtIndexURL64 = bobWallet.getPublicKeyAtIndexURL64(0);
+                log.info("bob(b) public byte " + bobPublicKeyAtIndexURL64);
+                byte[] calculateAgreementBobS = TkmCypherProviderBCX25519.calculateAgreement(
+                        bobWallet.getKeyPairAtIndex(0).getPrivate(),
+                        aliceWallet.getPublicKeyAtIndexURL64(0));
+                log.info("bob(b) secret " + Arrays.toString(calculateAgreementBobS));
+                assertArrayEquals(calculateAgreementBob, calculateAgreementBobS);
+                assertArrayEquals(calculateAgreementBob, secretA);
+                assertArrayEquals(secretA, calculateAgreementBobS);
+
+                //X25519PublicKeyParameters alicePublicKeyParamX25519Decoded = TkmSignUtils.getPublicKeyParamX25519(alicePublicKeyAtIndexURL64);
+                //X25519PublicKeyParameters bobPublicKeyParamX25519Decoded = TkmSignUtils.getPublicKeyParamX25519(bobPublicKeyAtIndexURL64);
             }
 
         }

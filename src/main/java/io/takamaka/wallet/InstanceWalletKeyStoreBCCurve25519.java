@@ -45,6 +45,7 @@ import org.bouncycastle.crypto.AsymmetricCipherKeyPairGenerator;
 import org.bouncycastle.crypto.generators.X25519KeyPairGenerator;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.params.X25519KeyGenerationParameters;
+import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
 //import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
 
 import org.bouncycastle.util.encoders.UrlBase64;
@@ -319,7 +320,7 @@ public class InstanceWalletKeyStoreBCCurve25519 implements InstanceWalletKeystor
                     throw new InvalidWalletIndexException("index outside wallet range");
                 }
                 AsymmetricCipherKeyPairGenerator kpGen = new X25519KeyPairGenerator();
-                kpGen.init(new X25519KeyGenerationParameters(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1)));
+                kpGen.init(new X25519KeyGenerationParameters(new SeededRandom(seed, KeyContexts.DETERMINISTIC_KEY_AGREEMENT, index + 1)));
                 //new X25519KeyPairGenerator(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1));
                 //keyPairGenerator.init();
                 signKeys.put(index, kpGen.generateKeyPair());
@@ -350,8 +351,8 @@ public class InstanceWalletKeyStoreBCCurve25519 implements InstanceWalletKeystor
                     UrlBase64 b64e = new UrlBase64();
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
-                    AsymmetricKeyParameter publicKey = (AsymmetricKeyParameter) aPublic;
-                    //b64e.encode(publicKey.getEncoded(), baos);
+                    X25519PublicKeyParameters publicKey =  (X25519PublicKeyParameters) aPublic;
+                    b64e.encode(publicKey.getEncoded(), baos);
                     hexPublicKeys.put(index, baos.toString());
                     baos.close();
                 } catch (IOException ex) {

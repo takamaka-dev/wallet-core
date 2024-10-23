@@ -22,6 +22,7 @@ public final class KeyContexts {
      * context string (fixed salt part) for pbkf function
      */
     public static final String WALLET_KEY_CHAIN = "__WKCH__";
+    public static final String DETERMINISTIC_KEY_AGREEMENT = "__DKA__";
     /**
      * context string (fixed salt part) for pbkf function
      */
