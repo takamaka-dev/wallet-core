@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.concurrent.ConcurrentSkipListMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.log4j.BasicConfigurator;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.agreement.X25519Agreement;
 import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
@@ -172,6 +173,15 @@ public class WalletTest {
 
                 //X25519PublicKeyParameters alicePublicKeyParamX25519Decoded = TkmSignUtils.getPublicKeyParamX25519(alicePublicKeyAtIndexURL64);
                 //X25519PublicKeyParameters bobPublicKeyParamX25519Decoded = TkmSignUtils.getPublicKeyParamX25519(bobPublicKeyAtIndexURL64);
+                AsymmetricCipherKeyPair keyZero = InstanceWalletKeyStoreBCCurve25519.getOneTimeRandomKeyPair();
+                AsymmetricCipherKeyPair keyOne = InstanceWalletKeyStoreBCCurve25519.getOneTimeRandomKeyPair();
+
+                byte[] calculateAgreementZeroOne = TkmCypherProviderBCX25519.calculateAgreement(keyZero.getPrivate(), keyOne.getPublic());
+                byte[] calculateAgreementOneZero = TkmCypherProviderBCX25519.calculateAgreement(keyOne.getPrivate(), keyZero.getPublic());
+                log.info("k0k1 " + Arrays.toString(calculateAgreementOneZero));
+                log.info("k1k0 " + Arrays.toString(calculateAgreementZeroOne));
+                assertArrayEquals(calculateAgreementZeroOne, calculateAgreementOneZero);
+
             }
 
         }

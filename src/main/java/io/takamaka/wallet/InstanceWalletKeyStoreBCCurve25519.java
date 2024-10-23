@@ -29,6 +29,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -351,7 +352,7 @@ public class InstanceWalletKeyStoreBCCurve25519 implements InstanceWalletKeystor
                     UrlBase64 b64e = new UrlBase64();
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
-                    X25519PublicKeyParameters publicKey =  (X25519PublicKeyParameters) aPublic;
+                    X25519PublicKeyParameters publicKey = (X25519PublicKeyParameters) aPublic;
                     b64e.encode(publicKey.getEncoded(), baos);
                     hexPublicKeys.put(index, baos.toString());
                     baos.close();
@@ -403,10 +404,18 @@ public class InstanceWalletKeyStoreBCCurve25519 implements InstanceWalletKeystor
     /**
      *
      * compare two wallet using their file system name
+     * @param t
      */
     @Override
     public int compareTo(InstanceWalletKeystoreInterface t) {
         return getCurrentWalletID().compareTo(t.getCurrentWalletID());
+    }
+
+    public static final AsymmetricCipherKeyPair getOneTimeRandomKeyPair() {
+        AsymmetricCipherKeyPairGenerator kpGen = new X25519KeyPairGenerator();
+        X25519KeyGenerationParameters x25519KeyGenerationParameters = new X25519KeyGenerationParameters(new SecureRandom());
+        kpGen.init(x25519KeyGenerationParameters);
+        return kpGen.generateKeyPair();
     }
 
 }
