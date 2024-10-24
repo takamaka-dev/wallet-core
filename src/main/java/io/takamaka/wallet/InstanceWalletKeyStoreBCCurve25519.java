@@ -349,11 +349,10 @@ public class InstanceWalletKeyStoreBCCurve25519 implements InstanceWalletKeystor
             synchronized (getPublicKeyAtIndexHexLock) {
                 try {
                     AsymmetricCipherKeyPair keyPairAtIndex = getKeyPairAtIndex(index);
-                    UrlBase64 b64e = new UrlBase64();
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
                     X25519PublicKeyParameters publicKey = (X25519PublicKeyParameters) aPublic;
-                    b64e.encode(publicKey.getEncoded(), baos);
+                    UrlBase64.encode(publicKey.getEncoded(), baos);
                     hexPublicKeys.put(index, baos.toString());
                     baos.close();
                 } catch (IOException ex) {
@@ -384,12 +383,11 @@ public class InstanceWalletKeyStoreBCCurve25519 implements InstanceWalletKeystor
             synchronized (getPublicKeyAtIndexByteLock) {
                 try {
                     AsymmetricCipherKeyPair keyPairAtIndex = getKeyPairAtIndex(index);
-                    UrlBase64 b64e = new UrlBase64();
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
-                    //X25519PublicKeyParameters publicKey = (X25519PublicKeyParameters) aPublic;
-                    //b64e.encode(publicKey.getEncoded(), baos);
-                    bytePublicKeys.put(index, baos.toByteArray());
+                    X25519PublicKeyParameters publicKey = (X25519PublicKeyParameters) aPublic;
+                    //UrlBase64.encode(publicKey.getEncoded(), baos);
+                    bytePublicKeys.put(index, publicKey.getEncoded());
                     baos.close();
                 } catch (IOException ex) {
                     log.error("Wallet can not serialize public key", ex);
