@@ -63,7 +63,7 @@ public class InstanceWalletKeyStoreBCECIES implements InstanceWalletKeystoreInte
     private String seed;
     private String currentWalletName;
     private boolean isInitialized; //default to false
-    private final static KeyContexts.WalletCypher walletCypher = KeyContexts.WalletCypher.Ed25519BC;
+    private final static KeyContexts.WalletCypher walletCypher = KeyContexts.WalletCypher.ECIESBCsecp521r1;
     private final Object constructorLock = new Object();
     private final Object getKeyPairAtIndexLock = new Object();
     private final Object getPublicKeyAtIndexHexLock = new Object();
@@ -91,8 +91,6 @@ public class InstanceWalletKeyStoreBCECIES implements InstanceWalletKeystoreInte
     }
 
     /**
-     * Constructor for InstanceWalletKeyStoreBCED25519.
-     *
      * It initializes the collections for key pairs and public keys, and calls
      * initWallet method to initialize or load an existing wallet using a
      * default hardcoded password
@@ -121,8 +119,6 @@ public class InstanceWalletKeyStoreBCECIES implements InstanceWalletKeystoreInte
     }
 
     /**
-     * Constructor for InstanceWalletKeyStoreBCED25519.
-     *
      * It initializes the collections for key pairs and public keys, and calls
      * initWallet method to initialize or load an existing wallet
      *
@@ -151,9 +147,7 @@ public class InstanceWalletKeyStoreBCECIES implements InstanceWalletKeystoreInte
     }
 
     /**
-     * Constructor for InstanceWalletKeyStoreBCED25519.
-     *
-     * It initializes the collections for key pairs and public keys, and calls
+          * It initializes the collections for key pairs and public keys, and calls
      * initWallet method to initialize or load an existing wallet
      *
      * @param walletName the name of the wallet file
@@ -221,7 +215,7 @@ public class InstanceWalletKeyStoreBCECIES implements InstanceWalletKeystoreInte
                 concat += " " + words.get(i);
             }
 
-            KeyBean kb = new KeyBean("POWSEED", KeyContexts.WalletCypher.Ed25519BC, seed, concat);
+            KeyBean kb = new KeyBean("POWSEED", KeyContexts.WalletCypher.ECIESBCsecp521r1, seed, concat);
             try {
                 WalletHelper.writeKeyFile(FileHelper.getDefaultWalletDirectoryPath(), currentWalletName, kb, password);
 
@@ -303,7 +297,7 @@ public class InstanceWalletKeyStoreBCECIES implements InstanceWalletKeystoreInte
      * Retrieve the keypair at a specific index in the wallet.
      *
      * If the keypair is not yet stored in the signKeys collection, it will be
-     * generated using Ed25519KeyPairGenerator, initialized with a seed and an
+     * generated using ECsecp521r1, initialized with a seed and an
      * index, then added to the signKeys collection
      *
      * @param index index of the keypair to be retrieved
@@ -323,7 +317,7 @@ public class InstanceWalletKeyStoreBCECIES implements InstanceWalletKeystoreInte
                 ECDomainParameters ecDomain = new ECDomainParameters(spec.getCurve(), spec.getG(), spec.getN());
                 ECKeyPairGenerator ecGen = new ECKeyPairGenerator();
                 //ECIESKeyEncapsulation eciesKeyEncapsulation = new ECIESKeyEncapsulation(new KDF1BytesGenerator(new SHA256Digest()), new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1));
-                ecGen.init(new ECKeyGenerationParameters(ecDomain, new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1)));
+                ecGen.init(new ECKeyGenerationParameters(ecDomain, new SeededRandom(seed, KeyContexts.ECsecp521r1KEM, index + 1)));
                 
                 signKeys.put(index, ecGen.generateKeyPair());
             }
