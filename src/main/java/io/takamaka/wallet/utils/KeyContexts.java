@@ -22,6 +22,7 @@ public final class KeyContexts {
      * context string (fixed salt part) for pbkf function
      */
     public static final String WALLET_KEY_CHAIN = "__WKCH__";
+    public static final String RSA_PK_ENCRYPTION = "__RSA_PK_ENCRYPTION__";
     public static final String DETERMINISTIC_KEY_AGREEMENT = "__DKA__";
     /**
      * context string (fixed salt part) for pbkf function
@@ -163,7 +164,11 @@ public final class KeyContexts {
          * bouncy castle, provable secure, I, Round 2
          */
         BCQTESLA_PS_1_R2,
-        Curve25519BC
+        Curve25519BC,
+        /**
+         * RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING, 4096 bit encryption
+         */
+        RSA_4096_ECB_OAEP
     }
 
     /**

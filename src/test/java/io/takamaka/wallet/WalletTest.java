@@ -7,11 +7,17 @@ package io.takamaka.wallet;
 import io.takamaka.wallet.beans.InternalTransactionBean;
 import io.takamaka.wallet.beans.TransactionBean;
 import io.takamaka.wallet.beans.TransactionBox;
+import io.takamaka.wallet.exceptions.InvalidWalletIndexException;
 import io.takamaka.wallet.exceptions.KeyDecodeException;
+import io.takamaka.wallet.exceptions.PublicKeySerializzationException;
 import io.takamaka.wallet.exceptions.TransactionNotYetImplementedException;
+import io.takamaka.wallet.exceptions.UnlockWalletException;
+import io.takamaka.wallet.exceptions.WalletBurnedException;
+import io.takamaka.wallet.exceptions.WalletEmptySeedException;
 import io.takamaka.wallet.exceptions.WalletException;
 import io.takamaka.wallet.utils.BuilderITB;
 import io.takamaka.wallet.utils.KeyContexts;
+import io.takamaka.wallet.utils.SeededRandom;
 import io.takamaka.wallet.utils.TkmSignUtils;
 import io.takamaka.wallet.utils.TkmTextUtils;
 import io.takamaka.wallet.utils.TkmWallet;
@@ -567,6 +573,69 @@ public class WalletTest {
         BigDecimal costInTK = TransactionFeeCalculator.getCostInTK(BigInteger.ONE.multiply(bNanoToUnit), BigInteger.TWO.multiply(bNanoToUnit), BigInteger.TEN.multiply(bNanoToUnit));
         log.info(costInTK.toString());
         assertTrue(costInTK.compareTo(new BigDecimal(new BigInteger("13"))) == 0);
+
+    }
+
+    @Test
+    public void nextIntTest() throws UnlockWalletException, WalletEmptySeedException, WalletBurnedException, InvalidWalletIndexException, PublicKeySerializzationException {
+        SeededRandom seededRandomP1 = new SeededRandom("pollo", "test", 1);
+        SeededRandom seededRandomP2 = new SeededRandom("pollo", "test", 1);
+        SeededRandom seededRandomPIntTest = new SeededRandom("pollo", "test", 1);
+        //SeededRandom seededRandom = new SeededRandom("pollo", "test", 1);
+        byte[] by = new byte[32];
+        InstanceWalletKeyStoreBCED25519 iwk = new InstanceWalletKeyStoreBCED25519("test_key", 1024);
+        String[] wallR1 = new String[44];
+        String[] wallR2 = new String[44];
+        for (int i = 0; i < 10; i++) {
+            String publicKeyAtIndexURL64 = iwk.getPublicKeyAtIndexURL64(i);
+            wallR1[i] = publicKeyAtIndexURL64;
+            log.info("\twallet " + i + " " + publicKeyAtIndexURL64);
+        }
+        for (int i = 0; i < 10; i++) {
+            String publicKeyAtIndexURL64 = iwk.getPublicKeyAtIndexURL64(i);
+            wallR2[i] = publicKeyAtIndexURL64;
+            log.info("\twallet " + i + " " + publicKeyAtIndexURL64);
+        }
+        assertArrayEquals("must be deterministic", wallR1, wallR2);
+        String[] p1 = new String[10];
+        String[] p2 = new String[10];
+        for (int i = 0; i < 10; i++) {
+            seededRandomP1.nextBytes(by);
+            p1[i] = TkmSignUtils.fromByteArrayToHexString(by);
+            log.info("b: " + p1[i]);
+        }
+        for (int i = 0; i < 10; i++) {
+            seededRandomP2.nextBytes(by);
+            p2[i] = TkmSignUtils.fromByteArrayToHexString(by);
+            log.info("b: " + p2[i]);
+        }
+        assertArrayEquals("must be deterministic", p1, p2);
+        //advance p2
+        for (int i = 0; i < 10; i++) {
+            seededRandomP2.nextBytes(by);
+            p2[i] = TkmSignUtils.fromByteArrayToHexString(by);
+            log.info("b2: " + p2[i]);
+        }
+        for (int i = 0; i < p2.length; i++) {
+            assert (!p1[i].equals(p2[i]));
+
+        }
+        int[] firstRun = new int[10];
+        int[] secondRun = new int[10];
+        for (int i = 0; i < 10; i++) {
+            int nextInt = seededRandomPIntTest.nextInt();
+            firstRun[i] = nextInt;
+            log.info("first i " + nextInt);
+        }
+        for (int i = 0; i < 10; i++) {
+            int nextInt = seededRandomPIntTest.nextInt();
+            secondRun[i] = nextInt;
+            log.info("second i " + nextInt);
+        }
+        for (int i = 0; i < secondRun.length; i++) {
+            assert (firstRun[i] != secondRun[i]);
+
+        }
 
     }
 

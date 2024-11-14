@@ -7,6 +7,7 @@ package io.takamaka.wallet.utils;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
+import java.util.UUID;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ public class SeededRandom extends SecureRandom {
     private String seed;
     private String scope;
     private int keyNumber;
+    private Long rsaIterationsInSameInstance;
     //private int keyLength;
 
     /**
@@ -34,13 +36,27 @@ public class SeededRandom extends SecureRandom {
         this.seed = seed;
         this.scope = scope;
         this.keyNumber = keyNumber;
+        rsaIterationsInSameInstance = 0L;
+    }
+
+    public Long getinternalGeneratorState() {
+        return rsaIterationsInSameInstance;
     }
 
     @Override
     public void nextBytes(byte[] bytes) {
-        PBEKeySpec spec = new PBEKeySpec(Strings.asCharArray(Strings.toByteArray(seed)),
-                Strings.toByteArray(scope),
-                keyNumber, 8 * bytes.length);
+        PBEKeySpec spec;
+        if (rsaIterationsInSameInstance == 0L) {
+            spec = new PBEKeySpec(Strings.asCharArray(Strings.toByteArray(seed)),
+                    Strings.toByteArray(scope),
+                    keyNumber, 8 * bytes.length);
+            rsaIterationsInSameInstance++;
+        } else {
+            spec = new PBEKeySpec(Strings.asCharArray(Strings.toByteArray(seed + rsaIterationsInSameInstance)),
+                    Strings.toByteArray(scope),
+                    keyNumber, 8 * bytes.length);
+            rsaIterationsInSameInstance++;
+        }
         SecretKeyFactory skf = null;
         try {
             skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512");
