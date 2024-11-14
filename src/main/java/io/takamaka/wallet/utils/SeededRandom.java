@@ -39,8 +39,12 @@ public class SeededRandom extends SecureRandom {
         rsaIterationsInSameInstance = 0L;
     }
 
-    public Long getinternalGeneratorState() {
+    public Long getInternalGeneratorState() {
         return rsaIterationsInSameInstance;
+    }
+
+    public void setInternalGeneratorState(long l) {
+        this.rsaIterationsInSameInstance = l;
     }
 
     @Override
