@@ -858,5 +858,8 @@ public final class KeyContexts {
         sith,
         UNDEFINED
     }
+    
+    public static final String BC_RSA_4096ENC_FORMAT = "RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING";
+    
 
 }

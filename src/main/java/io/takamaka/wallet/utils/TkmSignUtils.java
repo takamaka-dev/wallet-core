@@ -19,7 +19,13 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.Security;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPrivateKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,6 +46,8 @@ import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.util.encoders.UrlBase64;
 import static org.apache.commons.codec.digest.DigestUtils.digest;
 import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
 
 /**
@@ -76,24 +84,54 @@ public class TkmSignUtils {
             throw new KeyDecodeException(ex);
         }
     }
-    
-//    public static final AsymmetricCipherKeyPair stringPublicKeyToBCRSA4096ENCKey(String publicKey) throws KeyDecodeException {
-//        try {
-//            //UrlBase64 b64e = new UrlBase64();
-//            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//            UrlBase64.decode(publicKey, baos);
-////            Ed25519PublicKeyParameters edPublicKey = new Ed25519PublicKeyParameters(baos.toByteArray(), 0);
-//            KeyFactory factory = KeyFactory.getInstance("RSA");
-//                    PublicKey pub = factory.;
-//                    
-//            baos.close();
-//            AsymmetricCipherKeyPair ackp = new AsymmetricCipherKeyPair(edPublicKey, null);
-//            return ackp;
-//        } catch (Exception ex) {
-//            log.warn("error in conversion from string PublicKey To Key Pair BCEd25519", ex);
-//            throw new KeyDecodeException(ex);
-//        }
-//    }
+
+    public static final RSAPublicKey stringPublicKeyToBCRSA4096ENCKey(String publicKey) throws KeyDecodeException {
+        try {
+            //UrlBase64 b64e = new UrlBase64();
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            byte[] keyBytes = UrlBase64.decode(publicKey);
+            EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(keyBytes);
+//            PublicKey generatePublic = keyFactory.generatePublic(publicKeySpec);
+            KeyFactory kf = KeyFactory.getInstance("RSA"); // Assuming this is an RSA key
+            RSAPublicKey rsaPubKey = (RSAPublicKey) kf.generatePublic(publicKeySpec);
+            return rsaPubKey;
+        } catch (Exception ex) {
+            log.warn("error in conversion from string PublicKey To Key Pair BCEd25519", ex);
+            throw new KeyDecodeException(ex);
+        }
+    }
+
+    public static final RSAPrivateKey asymmetricKeyParameterToRSAPrivateKey(AsymmetricKeyParameter asymmetricKeyParameter) throws KeyDecodeException {
+        try {
+            //UrlBase64 b64e = new UrlBase64();
+            RSAKeyParameters rsaPrivate = (RSAKeyParameters) asymmetricKeyParameter;
+            RSAPrivateKeySpec rsaPrivateKeySpec = new RSAPrivateKeySpec(rsaPrivate.getModulus(), rsaPrivate.getExponent());
+            KeyFactory kf = KeyFactory.getInstance("RSA"); // Assuming this is an RSA key
+            RSAPrivateKey rsaPrivateEnc = (RSAPrivateKey) kf.generatePrivate(rsaPrivateKeySpec);
+            return rsaPrivateEnc;
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException ex) {
+            log.warn("error in conversion from string PublicKey To Key Pair BCEd25519", ex);
+            throw new KeyDecodeException(ex);
+        }
+    }
+
+    public static final String fromRSAPrivateKeyToPKCS8EncodedKeyB64URL(AsymmetricKeyParameter asymmetricKeyParameter) throws KeyDecodeException {
+        RSAPrivateKey asymmetricKeyParameterToRSAPrivateKey = asymmetricKeyParameterToRSAPrivateKey(asymmetricKeyParameter);
+        PKCS8EncodedKeySpec pkcS8EncodedKeySpec = new PKCS8EncodedKeySpec(asymmetricKeyParameterToRSAPrivateKey.getEncoded());
+        return TkmSignUtils.fromByteArrayToB64URL(pkcS8EncodedKeySpec.getEncoded());
+    }
+
+    public static final RSAPrivateKey fromPKCS8EncodedKeyB64URLToRSAPrivateKey(String pkcs8priv) throws KeyDecodeException {
+        try {
+            PKCS8EncodedKeySpec pkcS8EncodedKeySpec = new PKCS8EncodedKeySpec(TkmSignUtils.fromB64URLToByteArray(pkcs8priv));
+            KeyFactory kf = KeyFactory.getInstance("RSA"); // Assuming this is an RSA key
+            RSAPrivateKey rsaPrivKey = (RSAPrivateKey) kf.generatePrivate(pkcS8EncodedKeySpec);
+            return rsaPrivKey;
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException ex) {
+            log.warn("error in conversion from string PublicKey To Key Pair BCEd25519", ex);
+            throw new KeyDecodeException(ex);
+        }
+    }
 
     public static final AsymmetricCipherKeyPair stringPublicKeyToKeyPairBCQTESLAPSSC1(String publicKey) throws KeyDecodeException {
         try {
@@ -104,7 +142,7 @@ public class TkmSignUtils {
             baos.close();
             AsymmetricCipherKeyPair ackp = new AsymmetricCipherKeyPair(edPublicKey, null);
             return ackp;
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             log.warn("error in conversion from string Public Key To Key Pair BCQTESLAPSSC1", ex);
             throw new KeyDecodeException(ex);
         }

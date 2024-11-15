@@ -36,6 +36,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAKeyGenParameterSpec;
 import java.security.spec.RSAPublicKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -69,6 +70,7 @@ public class InstanceWalletKeyStoreBCRSA4096ENC implements InstanceWalletKeystor
     private String currentWalletName;
     private boolean isInitialized; //default to false
     private final static KeyContexts.WalletCypher walletCypher = KeyContexts.WalletCypher.RSA_4096_ECB_OAEP;
+    private static final String ALGORITHM = "RSA";
     private final Object constructorLock = new Object();
     private final Object getKeyPairAtIndexLock = new Object();
     private final Object getPublicKeyAtIndexHexLock = new Object();
@@ -348,6 +350,7 @@ public class InstanceWalletKeyStoreBCRSA4096ENC implements InstanceWalletKeystor
      * If the key is not yet stored in the hexPublicKeys collection, it will be
      * retrieved from the keypair collection and encoded in URL-safe Base64
      * format before being added to the hexPublicKeys collection
+     * https://the-pi-guy.com/blog/restassured_api_testing_with_data_encryption_and_decryption/
      *
      * @param index index of the key to be retrieved
      * @return the public key at the given index in URL-safe Base64 format
@@ -367,9 +370,13 @@ public class InstanceWalletKeyStoreBCRSA4096ENC implements InstanceWalletKeystor
                     RSAPublicKeySpec spec = new RSAPublicKeySpec(rsaPublic.getModulus(), rsaPublic.getExponent());
                     KeyFactory factory = KeyFactory.getInstance("RSA");
                     PublicKey pub = factory.generatePublic(spec);
-                    UrlBase64.encode(pub.getEncoded(), baos);
+                    X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(pub.getEncoded());
+                    
+//                    KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
+//                    return keyFactory.generatePublic(x509KeySpec);
+                    UrlBase64.encode(x509KeySpec.getEncoded(), baos);
                     hexPublicKeys.put(index, baos.toString());
-                    baos.close();
+//                    baos.close();
                 } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException ex) {
                     log.error("Wallet can not serialize public key", ex);
                     throw new PublicKeySerializzationException(ex);
