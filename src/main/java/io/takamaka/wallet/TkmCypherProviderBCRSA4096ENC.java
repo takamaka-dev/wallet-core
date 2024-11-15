@@ -18,6 +18,7 @@ package io.takamaka.wallet;
 import io.takamaka.wallet.exceptions.KeyDecodeException;
 import io.takamaka.wallet.exceptions.PublicKeySerializzationException;
 import io.takamaka.wallet.exceptions.WalletException;
+import io.takamaka.wallet.utils.FixedParameters;
 import io.takamaka.wallet.utils.KeyContexts;
 import io.takamaka.wallet.utils.TkmSignUtils;
 import java.nio.charset.Charset;
@@ -52,7 +53,7 @@ public class TkmCypherProviderBCRSA4096ENC {
         try {
             Cipher cipher = Cipher.getInstance(KeyContexts.BC_RSA_4096ENC_FORMAT);
             cipher.init(Cipher.ENCRYPT_MODE, TkmSignUtils.stringPublicKeyToBCRSA4096ENCKey(rsaPublicKey));
-            byte[] encrypted = cipher.doFinal(plaintext.getBytes(Charset.defaultCharset()));
+            byte[] encrypted = cipher.doFinal(plaintext.getBytes(FixedParameters.CHARSET));
             return Base64.toBase64String(encrypted);
         } catch (IllegalBlockSizeException | BadPaddingException | KeyDecodeException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException ex) {
             log.error("Wallet can not serialize public key", ex);
@@ -92,7 +93,7 @@ public class TkmCypherProviderBCRSA4096ENC {
 
     public static String decryptToString(RSAPrivateKey asymmetricKeyParameterToRSAPrivateKey, String cyphertext) throws IllegalBlockSizeException, InvalidKeyException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException {
         byte[] decryptToByte = decryptToByte(asymmetricKeyParameterToRSAPrivateKey, cyphertext);
-        return new String(decryptToByte, Charset.defaultCharset());
+        return new String(decryptToByte, FixedParameters.CHARSET);
     }
 
 }
