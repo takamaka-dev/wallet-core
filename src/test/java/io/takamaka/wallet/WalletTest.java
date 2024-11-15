@@ -695,6 +695,8 @@ public class WalletTest {
         //TkmCypherProviderBCRSA4096ENC.decryptToByte(asymmetricKeyParameterToRSAPrivateKey, encrypted)
         String decrypt = TkmCypherProviderBCRSA4096ENC.decrypt(rsaPrivateKeyToPKCS8EncodedKeyB64URL, encrypted);
         log.info(decrypt);
+        assertEquals(decrypt, "pollo");
+        assertEquals(decryptedPlaintext, "pollo");
     }
     
 }
