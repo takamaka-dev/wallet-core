@@ -491,9 +491,7 @@ public class WalletTest {
             log.info("" + trxType);
             for (int j = 0; j < 5; j++) {
                 for (int k = 0; k < 2; k++) {
-                    for (int i = 0; i < messages.length; i++) {
-                        String[] mess = messages[i];
-
+                    for (String[] mess : messages) {
                         for (KeyContexts.WalletCypher walletCypher : walletsFrom.keySet()) {
                             try {
                                 log.info("Testing wallet type "
@@ -634,9 +632,35 @@ public class WalletTest {
         }
         for (int i = 0; i < secondRun.length; i++) {
             assert (firstRun[i] != secondRun[i]);
-
         }
 
+    }
+
+    @Test
+    public void b64rsa() throws UnlockWalletException, WalletException {
+        InstanceWalletKeystoreInterface iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");
+        String publicKeyAtIndexURL64 = iwk.getPublicKeyAtIndexURL64(0);
+        log.info(publicKeyAtIndexURL64);
+    }
+
+    @Test
+    public void byteRsa() throws UnlockWalletException, WalletException {
+        InstanceWalletKeystoreInterface iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");
+        byte[] publicKeyAtIndexByte = iwk.getPublicKeyAtIndexByte(0);
+        log.info(Arrays.toString(publicKeyAtIndexByte));
+    }
+
+    @Test
+    public void b64rsaPlusByte() throws UnlockWalletException, WalletException {
+        InstanceWalletKeystoreInterface iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");
+        String publicKeyAtIndexURL64 = iwk.getPublicKeyAtIndexURL64(0);
+        log.info(publicKeyAtIndexURL64);
+        //InstanceWalletKeystoreInterface iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");
+        byte[] publicKeyAtIndexByte = iwk.getPublicKeyAtIndexByte(0);
+        log.info(Arrays.toString(publicKeyAtIndexByte));
+        String fromByteArrayToB64URL = TkmSignUtils.fromByteArrayToB64URL(publicKeyAtIndexByte);
+        assertEquals("must be equals", publicKeyAtIndexURL64, fromByteArrayToB64URL);
+        
     }
 
 }

@@ -13,9 +13,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PublicKey;
 import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
@@ -74,6 +76,24 @@ public class TkmSignUtils {
             throw new KeyDecodeException(ex);
         }
     }
+    
+//    public static final AsymmetricCipherKeyPair stringPublicKeyToBCRSA4096ENCKey(String publicKey) throws KeyDecodeException {
+//        try {
+//            //UrlBase64 b64e = new UrlBase64();
+//            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//            UrlBase64.decode(publicKey, baos);
+////            Ed25519PublicKeyParameters edPublicKey = new Ed25519PublicKeyParameters(baos.toByteArray(), 0);
+//            KeyFactory factory = KeyFactory.getInstance("RSA");
+//                    PublicKey pub = factory.;
+//                    
+//            baos.close();
+//            AsymmetricCipherKeyPair ackp = new AsymmetricCipherKeyPair(edPublicKey, null);
+//            return ackp;
+//        } catch (Exception ex) {
+//            log.warn("error in conversion from string PublicKey To Key Pair BCEd25519", ex);
+//            throw new KeyDecodeException(ex);
+//        }
+//    }
 
     public static final AsymmetricCipherKeyPair stringPublicKeyToKeyPairBCQTESLAPSSC1(String publicKey) throws KeyDecodeException {
         try {

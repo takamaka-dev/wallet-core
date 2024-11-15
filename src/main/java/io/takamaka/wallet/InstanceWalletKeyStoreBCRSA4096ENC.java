@@ -23,19 +23,25 @@ import io.takamaka.wallet.utils.TkmTextUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAKeyGenParameterSpec;
+import java.security.spec.RSAPublicKeySpec;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -321,6 +327,12 @@ public class InstanceWalletKeyStoreBCRSA4096ENC implements InstanceWalletKeystor
                 /**
                  * https://docs.oracle.com/javase/8/docs/api/java/security/spec/RSAKeyGenParameterSpec.html
                  */
+
+                /**
+                 * Always instantiate a new SeededRandom generator to get the
+                 * deterministically correct seed.
+                 *
+                 */
                 rsaKeyPairGenerator.init(new RSAKeyGenerationParameters(RSAKeyGenParameterSpec.F4, new SeededRandom(seed, KeyContexts.RSA_PK_ENCRYPTION, index + 1), 4096, 1));
                 //keyPairGenerator.init(new Ed25519KeyGenerationParameters(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1)));
                 signKeys.put(index, rsaKeyPairGenerator.generateKeyPair());
@@ -352,10 +364,13 @@ public class InstanceWalletKeyStoreBCRSA4096ENC implements InstanceWalletKeystor
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
                     RSAKeyParameters rsaPublic = (RSAKeyParameters) aPublic;
-                    //UrlBase64.encode(rsaPublic.getEncoded(), baos);
+                    RSAPublicKeySpec spec = new RSAPublicKeySpec(rsaPublic.getModulus(), rsaPublic.getExponent());
+                    KeyFactory factory = KeyFactory.getInstance("RSA");
+                    PublicKey pub = factory.generatePublic(spec);
+                    UrlBase64.encode(pub.getEncoded(), baos);
                     hexPublicKeys.put(index, baos.toString());
                     baos.close();
-                } catch (IOException ex) {
+                } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException ex) {
                     log.error("Wallet can not serialize public key", ex);
                     throw new PublicKeySerializzationException(ex);
                 }
@@ -367,7 +382,7 @@ public class InstanceWalletKeyStoreBCRSA4096ENC implements InstanceWalletKeystor
 
     /**
      * Retrieve the public key at a specific index in the wallet in byte format.
-     *
+     * https://stackoverflow.com/questions/42861943/publickey-from-bouncycastle-rsakeyparameters
      * If the key is not yet stored in the bytePublicKeys collection, it will be
      * retrieved from the keypair collection and encoded in byte format before
      * being added to the bytePublicKeys collection
@@ -386,10 +401,15 @@ public class InstanceWalletKeyStoreBCRSA4096ENC implements InstanceWalletKeystor
                     //UrlBase64 b64e = new UrlBase64();
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
+                    RSAKeyParameters rsaPublic = (RSAKeyParameters) aPublic;
+                    RSAPublicKeySpec spec = new RSAPublicKeySpec(rsaPublic.getModulus(), rsaPublic.getExponent());
+                    KeyFactory factory = KeyFactory.getInstance("RSA");
+                    PublicKey pub = factory.generatePublic(spec);
+//                    new RSAKeyParameters(isInitialized, BigInteger.ONE, BigInteger.ONE)
                     //Ed25519PublicKeyParameters publicKey = (Ed25519PublicKeyParameters) aPublic;
-                    //bytePublicKeys.put(index, publicKey.getEncoded());
+                    bytePublicKeys.put(index, pub.getEncoded());
                     baos.close();
-                } catch (IOException ex) {
+                } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException ex) {
                     log.error("Wallet can not serialize public key", ex);
                     throw new PublicKeySerializzationException(ex);
                 }
