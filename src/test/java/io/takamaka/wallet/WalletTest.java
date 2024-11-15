@@ -30,6 +30,7 @@ import java.security.NoSuchProviderException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.log4j.BasicConfigurator;
@@ -37,8 +38,6 @@ import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.agreement.X25519Agreement;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
-import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
-import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import org.junit.jupiter.api.AfterEach;
@@ -679,15 +678,28 @@ public class WalletTest {
     }
     
     @Test 
-    public void testEncryptionStrings() throws UnlockWalletException, WalletException{
-        for(int i = 0; i < 3; i++){
+    public void testStaticEncryptionStrings() throws UnlockWalletException, WalletException{
+        for(int i = 0; i < 3 ; i++){
             String publicKey = TestEnvObjectsCore.REF_ADDR_RSA_PUB_KEY[i];
             String privateKey = TestEnvObjectsCore.REF_ADDR_RSA_PRIV_KEY[i];
-            String plaintext = TestEnvObjectsCore.REF_ADDR_ARRAY[i];
+            String plaintext = TestEnvObjectsCore.REF_ADDR_ARRAY_LOREM[i].substring(0, 130);
             String encrypted = TkmCypherProviderBCRSA4096ENC.encrypt(publicKey, plaintext);
             String decrypted = TkmCypherProviderBCRSA4096ENC.decrypt(privateKey, encrypted);
+            assertEquals(plaintext.length(), decrypted.length());
             assertEquals("must be equal", plaintext, decrypted);
         }
+    }
+    
+    @Test
+    public void testDynamicEncryptionStrings() throws UnlockWalletException, InvalidWalletIndexException, PublicKeySerializzationException, WalletException, KeyDecodeException{
+        InstanceWalletKeyStoreBCRSA4096ENC iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa","password");
+        for(int i = 0; i < 3; i++){
+            String apublicKey = iwk.getPublicKeyAtIndexURL64(i);
+            String plaintext = UUID.randomUUID().toString();
+            String encrypted = TkmCypherProviderBCRSA4096ENC.encrypt(apublicKey, plaintext);
+            String decrypted = TkmCypherProviderBCRSA4096ENC.decrypt(iwk, i, encrypted);
+            assertEquals("must be equals", plaintext, decrypted);
+        }   
     }
     
     @Test
@@ -709,6 +721,7 @@ public class WalletTest {
         }
     }
 
+    
     @Test
     public void stringKeyToRSAKey() throws UnlockWalletException, WalletException, KeyDecodeException {
         InstanceWalletKeystoreInterface iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");

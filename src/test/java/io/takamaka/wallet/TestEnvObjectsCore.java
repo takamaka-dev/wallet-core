@@ -91,9 +91,9 @@ public class TestEnvObjectsCore {
             + "Da (Do)lorem ipsum (‘lo stesso dolore’), inizio di una frase tratta dal dialogo di Cicerone De finibus bonorum et malorum (Il sommo bene e il sommo male) che contiene, variamente combinate e modificate, le parole del testo segnaposto. ";
 
     public static final String[] REF_ADDR_ARRAY_LOREM = new String[]{
+        REF_ADDR01_LOREM_IPSUM_LATIN,
         REF_ADDR01_LOREM_IPSUM_ARAB,
         REF_ADDR01_LOREM_IPSUM_CHINESE,
-        REF_ADDR01_LOREM_IPSUM_LATIN
     };
 
     public static final ConcurrentSkipListMap<String, String> DEFAULT_UNDEFINED_SHORT = new ConcurrentSkipListMap<>() {
