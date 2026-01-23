@@ -36,29 +36,32 @@ import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.util.encoders.Base64;
 
 /**
+ * RSA-4096 OAEP encryption provider with SHA-256 for both OAEP hash and MGF1.
+ * Cross-platform compatible with PointyCastle (Dart/Flutter).
  *
  * @author Giovanni Antino giovanni.antino@takamaka.io
  */
 @Slf4j
-public class TkmCypherProviderBCRSA4096ENC {
+public class TkmCypherProviderBCRSA4096ENC256 {
 
     /**
-     * Creates OAEPParameterSpec with SHA-256 OAEP hash and SHA-1 MGF1.
-     * This is the legacy format (JCE default MGF1 behavior).
+     * Creates OAEPParameterSpec with SHA-256 for both OAEP hash and MGF1.
+     * This matches PointyCastle's OAEPEncoding.withSHA256(RSAEngine()) in Dart/Flutter.
      *
-     * @return OAEPParameterSpec configured for legacy compatibility
+     * @return OAEPParameterSpec configured for cross-platform compatibility
      */
     private static OAEPParameterSpec createOAEPParams() {
         return new OAEPParameterSpec(
                 "SHA-256",                      // OAEP hash algorithm
                 "MGF1",                         // Mask generation function
-                MGF1ParameterSpec.SHA1,         // MGF1 hash algorithm (legacy)
+                MGF1ParameterSpec.SHA256,       // MGF1 hash algorithm (cross-platform)
                 PSource.PSpecified.DEFAULT      // Empty label (P parameter)
         );
     }
 
     /**
-     * Encrypts plaintext using RSA-4096 OAEP with SHA-256 hash and SHA-1 MGF1 (legacy).
+     * Encrypts plaintext using RSA-4096 OAEP with SHA-256 for both hash and MGF1.
+     * Cross-platform compatible with PointyCastle (Dart/Flutter).
      *
      * @param rsaPublicKey the RSA public key in URL-safe Base64 format
      * @param plaintext the plaintext to encrypt
@@ -82,7 +85,7 @@ public class TkmCypherProviderBCRSA4096ENC {
     }
 
     /**
-     * Decrypts ciphertext using RSA-4096 OAEP with SHA-256 hash and SHA-1 MGF1 (legacy).
+     * Decrypts ciphertext using RSA-4096 OAEP with SHA-256 for both hash and MGF1.
      *
      * @param iwk the wallet keystore interface
      * @param index the key index
@@ -104,7 +107,7 @@ public class TkmCypherProviderBCRSA4096ENC {
     }
 
     /**
-     * Decrypts ciphertext using RSA-4096 OAEP with SHA-256 hash and SHA-1 MGF1 (legacy).
+     * Decrypts ciphertext using RSA-4096 OAEP with SHA-256 for both hash and MGF1.
      *
      * @param pkcs8encodedB64URL the PKCS8-encoded private key in URL-safe Base64 format
      * @param cyphertext the Base64-encoded ciphertext
@@ -124,7 +127,8 @@ public class TkmCypherProviderBCRSA4096ENC {
     }
 
     /**
-     * Decrypts ciphertext to byte array using RSA-4096 OAEP with SHA-256 hash and SHA-1 MGF1 (legacy).
+     * Decrypts ciphertext to byte array using RSA-4096 OAEP with SHA-256 for both hash and MGF1.
+     * Cross-platform compatible with PointyCastle (Dart/Flutter).
      *
      * @param asymmetricKeyParameterToRSAPrivateKey the RSA private key
      * @param cyphertext the Base64-encoded ciphertext
@@ -146,7 +150,7 @@ public class TkmCypherProviderBCRSA4096ENC {
     }
 
     /**
-     * Decrypts ciphertext to String using RSA-4096 OAEP with SHA-256 hash and SHA-1 MGF1 (legacy).
+     * Decrypts ciphertext to String using RSA-4096 OAEP with SHA-256 for both hash and MGF1.
      *
      * @param asymmetricKeyParameterToRSAPrivateKey the RSA private key
      * @param cyphertext the Base64-encoded ciphertext
