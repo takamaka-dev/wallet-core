@@ -166,9 +166,17 @@ public final class KeyContexts {
         BCQTESLA_PS_1_R2,
         Curve25519BC,
         /**
-         * RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING, 4096 bit encryption
+         * RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING, 4096 bit encryption.
+         * Uses SHA-256 for OAEP hash and SHA-1 for MGF1 (JCE default).
+         * @deprecated Use RSA_4096_ECB_OAEP_SHA256 for cross-platform compatibility.
          */
-        RSA_4096_ECB_OAEP
+        @Deprecated
+        RSA_4096_ECB_OAEP,
+        /**
+         * RSA/ECB/OAEP with SHA-256 for both hash and MGF1, 4096 bit encryption.
+         * Cross-platform compatible with PointyCastle (Dart/Flutter).
+         */
+        RSA_4096_ECB_OAEP_SHA256
     }
 
     /**
@@ -859,7 +867,18 @@ public final class KeyContexts {
         UNDEFINED
     }
     
+    /**
+     * RSA/ECB/OAEP with SHA-256 for OAEP hash and SHA-1 for MGF1 (JCE default).
+     * @deprecated Use BC_RSA_4096ENC_SHA256_FORMAT for cross-platform compatibility.
+     */
+    @Deprecated
     public static final String BC_RSA_4096ENC_FORMAT = "RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING";
-    
+
+    /**
+     * RSA/ECB/OAEP with SHA-256 for both hash and MGF1.
+     * Cross-platform compatible with PointyCastle (Dart/Flutter).
+     * Requires OAEPParameterSpec to explicitly set MGF1 to SHA-256.
+     */
+    public static final String BC_RSA_4096ENC_SHA256_FORMAT = "RSA/ECB/OAEPPadding";
 
 }
