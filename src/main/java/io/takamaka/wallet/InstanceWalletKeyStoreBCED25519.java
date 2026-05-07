@@ -222,7 +222,12 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
             try {
                 WalletHelper.writeKeyFile(FileHelper.getDefaultWalletDirectoryPath(), currentWalletName, kb, password);
 
-            } catch (NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException ex) {
+            } catch (NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | io.takamaka.wallet.exceptions.KeystoreFileExistsException ex) {
+                // 0.10.0 — KeystoreFileExistsException added to catch list for
+                // compiler enforcement. The pre-check at line ~210
+                // (if (!FileHelper.fileExists(walletPath))) shields this call
+                // path from actually triggering it, but Java's checked-exception
+                // contract requires explicit handling.
                 log.error("instance error password", ex);
                 throw new UnlockWalletException("instance error password", ex);
             }

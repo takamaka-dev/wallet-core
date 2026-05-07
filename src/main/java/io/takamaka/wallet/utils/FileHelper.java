@@ -86,13 +86,26 @@ public class FileHelper {
     }
 
     public static final String[] getFileNameList(Path p) {
+        // 0.10.0 M1' fix — replace silent null-return with explicit
+        // IllegalArgumentException, and guard against listFiles() returning
+        // null when the path is not a directory (would NPE inside
+        // Arrays.stream prior to the fix). Empty directories now correctly
+        // return an empty array.
         if (p == null) {
-            return null;
+            throw new IllegalArgumentException("getFileNameList: path must not be null");
         }
-        return Arrays.stream(p.toFile().listFiles()).map(f -> f.getAbsolutePath()).toArray(String[]::new);
-        //.collect(Collectors.toSet());
-//                .filter(file->!file.isDirectory())
-//                .map(File::getName).collect(Collectors.toSet());
+        java.io.File[] files = p.toFile().listFiles();
+        if (files == null) {
+            // listFiles() returns null when the path is not a directory or
+            // when an I/O error occurs. Distinguish for caller diagnostics.
+            if (!p.toFile().isDirectory()) {
+                throw new IllegalArgumentException(
+                        "getFileNameList: path is not a directory: " + p.toString());
+            }
+            // Directory exists but listFiles failed (rare — I/O error, perm).
+            return new String[0];
+        }
+        return Arrays.stream(files).map(f -> f.getAbsolutePath()).toArray(String[]::new);
     }
 
     /**
@@ -599,19 +612,28 @@ public class FileHelper {
     }
 
     public static final Path getTransactionsDumpPathFolder(String pidName) throws IOException {
+        // 0.10.0 M2' fix — replace silent null-returns on creation failure
+        // with explicit IOException. Prior callers receiving null could not
+        // distinguish "folder didn't exist and creation failed" from
+        // legitimate empty/missing state.
         Path baseDumpFolder = Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER);
         if (!baseDumpFolder.toFile().isDirectory()) {
             FileHelper.createDir(baseDumpFolder);
         }
-        if (baseDumpFolder.toFile().isDirectory()) {
-            Path inner = Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER, pidName);
-            FileHelper.createDir(inner);
-            if (!inner.toFile().isDirectory()) {
-                return null;
-            }
-            return inner;
+        if (!baseDumpFolder.toFile().isDirectory()) {
+            throw new IOException(
+                    "getTransactionsDumpPathFolder: failed to create base"
+                    + " transactions-dump folder at " + baseDumpFolder);
         }
-        return null;
+        Path inner = Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER, pidName);
+        FileHelper.createDir(inner);
+        if (!inner.toFile().isDirectory()) {
+            throw new IOException(
+                    "getTransactionsDumpPathFolder: failed to create inner"
+                    + " transactions-dump folder for pid '" + pidName + "' at "
+                    + inner);
+        }
+        return inner;
     }
 
     /**
@@ -1161,14 +1183,23 @@ public class FileHelper {
      *
      * @param filePath
      */
-    public static final void deleteSingleFile(Path filePath) {
-        if (filePath.toFile().exists()) {
-            boolean delete = filePath.toFile().delete();
-            if (!delete) {
-                log.error("file not deleted " + filePath.toString());
-            }
-        } else {
-            log.error("not a file " + filePath.toString());
+    public static final void deleteSingleFile(Path filePath) throws IOException {
+        // 0.10.0 H4 fix — promote silent log-only failure to a hard failure.
+        // Prior code logged on !delete and on missing file, then returned;
+        // callers had no way to tell whether the delete actually succeeded.
+        // delete() returns false on legitimate failures (open file handles
+        // on Windows, permission issues, ENOSPC, etc.) — all caller-relevant.
+        if (!filePath.toFile().exists()) {
+            throw new IOException(
+                    "deleteSingleFile: file does not exist: " + filePath.toString());
+        }
+        boolean delete = filePath.toFile().delete();
+        if (!delete) {
+            throw new IOException(
+                    "deleteSingleFile: delete() returned false for "
+                    + filePath.toString()
+                    + " (possible causes: file in use, permission denied, "
+                    + "filesystem read-only, path is a non-empty directory)");
         }
     }
 
@@ -1274,12 +1305,45 @@ public class FileHelper {
             sourceFile = (File) sourcePath;
             targetFile = (File) targetPath;
         }
+        // 0.10.0 H3 fix — defend against unsupported types: prior code would
+        // NPE on the renameTo call below if neither branch matched. Surface
+        // the contract violation explicitly.
+        if (sourceFile == null || targetFile == null) {
+            throw new IOException(
+                    "rename: unsupported source/target types — expected matching"
+                    + " String/Path/File pair, got source="
+                    + (sourcePath == null ? "null" : sourcePath.getClass().getName())
+                    + " target="
+                    + (targetPath == null ? "null" : targetPath.getClass().getName()));
+        }
+        // 0.10.0 H3 fix (additional) — honor overwrite=false explicitly. Prior
+        // code only used `overwrite` to optionally pre-delete the target;
+        // when overwrite=false and target existed, renameTo() on Linux
+        // (POSIX rename(2) syscall) silently overwrites anyway, violating the
+        // overwrite=false contract. Cross-platform-divergent silent behaviour.
+        if (!overwrite && targetFile.exists()) {
+            throw new IOException(
+                    "rename: target exists and overwrite=false: "
+                    + targetFile.getAbsolutePath()
+                    + " — pass overwrite=true or delete the target explicitly.");
+        }
         if (overwrite && targetFile.exists()) {
             delete(targetFile);
-
         }
         success = sourceFile.renameTo(targetFile);
-        //F.b("move attempt result: " + success);
+        // 0.10.0 H3 fix — promote silent skip to a hard failure. Prior code
+        // assigned success and discarded it, leaving callers unable to tell
+        // whether the rename actually happened. renameTo returns false in
+        // legitimate situations (cross-device move, target exists, permission
+        // denied, etc.) — all of which are caller-relevant.
+        if (!success) {
+            throw new IOException(
+                    "rename failed: " + sourceFile.getAbsolutePath()
+                    + " -> " + targetFile.getAbsolutePath()
+                    + " (renameTo returned false; possible causes: cross-device"
+                    + " move, target exists with overwrite=false, permission"
+                    + " denied, source missing)");
+        }
     }
 
     /**

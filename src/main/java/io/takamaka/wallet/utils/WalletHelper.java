@@ -18,6 +18,8 @@ import io.takamaka.wallet.exceptions.HashEncodeException;
 import io.takamaka.wallet.exceptions.HashProviderNotFoundException;
 import io.takamaka.wallet.exceptions.InvalidCypherException;
 import io.takamaka.wallet.exceptions.InvalidWalletIndexException;
+import io.takamaka.wallet.exceptions.KeystoreFileExistsException;
+import io.takamaka.wallet.exceptions.PublicKeyFileExistsException;
 import io.takamaka.wallet.exceptions.PublicKeySerializzationException;
 import io.takamaka.wallet.exceptions.UnlockWalletException;
 import io.takamaka.wallet.exceptions.WalletException;
@@ -84,7 +86,20 @@ public class WalletHelper {
         return key.getWords();
     }
 
-    public static Path writeKeyFile(Path path, String filename, KeyBean key, String password) throws NoSuchAlgorithmException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException {
+    public static Path writeKeyFile(Path path, String filename, KeyBean key, String password) throws NoSuchAlgorithmException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException, KeystoreFileExistsException {
+        // 0.10.0 H1 fix — fail fast at the top, before any crypto work, if the
+        // target keystore already exists. Eliminates the silent-corruption
+        // footgun where prior versions called writeStringToFile(..., overwrite=false),
+        // discarded the false-on-conflict return, and reported success
+        // anyway.  See exceptions/KeystoreFileExistsException.java javadoc and
+        // nodeflux/docs/TASK-wallet-core-app-root-overload.md §11 for context.
+        Path walletPath = Paths.get(path.toString(), filename);
+        if (FileHelper.fileExists(walletPath)) {
+            throw new KeystoreFileExistsException(
+                    "Refusing to overwrite existing keystore at " + walletPath
+                    + " — delete the file explicitly if replacement is intended.");
+        }
+
         String json = TkmTextUtils.toJson(key);
 
         /* if (password.length != 16 && password.length != 24 && password.length != 32) {
@@ -100,9 +115,11 @@ public class WalletHelper {
 
             EncKeyBean ekb = new EncKeyBean(KeyContexts.WALLET_JSON_AES, encJson);
 
+            // overwrite=false retained for defence-in-depth — unreachable now
+            // that writeKeyFile pre-checks at the top, but harmless and
+            // protects against future removal of the top-level guard.
             FileHelper.writeStringToFile(path, filename, TkmTextUtils.toJson(ekb), false);
-            Path walletPath = Paths.get(path.toString(), filename);
-            log.info("WALLET WRITTEN IN " + Paths.get(path.toString(), filename).toString());
+            log.info("WALLET WRITTEN IN " + walletPath.toString());
             return walletPath;
         } catch (HashEncodeException | HashAlgorithmNotFoundException | HashProviderNotFoundException | InvalidKeySpecException ex) {
             log.error("writeKeyFile error", ex);
@@ -262,26 +279,39 @@ public class WalletHelper {
         return SeedGenerator.verifySeedWords(words);
     }
 
-    public static void writePublicKey(String walletname, String password, int keyIndex, WalletCypher cypher) throws InvalidCypherException, InvalidWalletIndexException, PublicKeySerializzationException, UnlockWalletException, IOException, WalletException {
+    public static void writePublicKey(String walletname, String password, int keyIndex, WalletCypher cypher) throws InvalidCypherException, InvalidWalletIndexException, PublicKeySerializzationException, UnlockWalletException, IOException, WalletException, PublicKeyFileExistsException {
+        // 0.10.0 H2 fix — fail fast if the public-key export file already
+        // exists. Three nearly-identical writeStringToFile(..., false) call
+        // sites used to silently no-op on conflict; promoted to a hard
+        // failure so callers can detect and act. See exceptions/
+        // PublicKeyFileExistsException javadoc and TASK §12.1.
+        String pkFileName = walletname + FixedParameters.PUBLICKEY_EXTENSION;
+        Path pkPath = Paths.get(FileHelper.getPublicKeyDirectoryPath().toString(), pkFileName);
+        if (FileHelper.fileExists(pkPath)) {
+            throw new PublicKeyFileExistsException(
+                    "Refusing to overwrite existing public-key export at " + pkPath
+                    + " — delete the file explicitly if replacement is intended.");
+        }
+
         switch (cypher) {
             case Ed25519BC:
                 InstanceWalletKeyStoreBCED25519 wallet = new InstanceWalletKeyStoreBCED25519(walletname, password);
                 String pk = wallet.getPublicKeyAtIndexURL64(keyIndex);
                 PublicKeyBean pkb = new PublicKeyBean(cypher, KeyContexts.PUBLICKEY_CURRENT_VERSION, pk);
-                FileHelper.writeStringToFile(FileHelper.getPublicKeyDirectoryPath(), walletname + FixedParameters.PUBLICKEY_EXTENSION, TkmTextUtils.toJson(pkb), false);
+                FileHelper.writeStringToFile(FileHelper.getPublicKeyDirectoryPath(), pkFileName, TkmTextUtils.toJson(pkb), false);
                 break;
             case BCQTESLA_PS_1:
                 InstanceWalletKeyStoreBCQTESLAPSSC1Round1 walletQT = new InstanceWalletKeyStoreBCQTESLAPSSC1Round1(walletname, password);
                 String pkQT = walletQT.getPublicKeyAtIndexURL64(keyIndex);
                 PublicKeyBean pkbQT = new PublicKeyBean(cypher, KeyContexts.PUBLICKEY_CURRENT_VERSION, pkQT);
-                FileHelper.writeStringToFile(FileHelper.getPublicKeyDirectoryPath(), walletname + FixedParameters.PUBLICKEY_EXTENSION, TkmTextUtils.toJson(pkbQT), false);
+                FileHelper.writeStringToFile(FileHelper.getPublicKeyDirectoryPath(), pkFileName, TkmTextUtils.toJson(pkbQT), false);
                 break;
 
             case BCQTESLA_PS_1_R2:
                 InstanceWalletKeyStoreBCQTESLAPSSC1Round2 walletQTr2 = new InstanceWalletKeyStoreBCQTESLAPSSC1Round2(walletname, password);
                 String pkQTr2 = walletQTr2.getPublicKeyAtIndexURL64(keyIndex);
                 PublicKeyBean pkbQTr2 = new PublicKeyBean(cypher, KeyContexts.PUBLICKEY_CURRENT_VERSION, pkQTr2);
-                FileHelper.writeStringToFile(FileHelper.getPublicKeyDirectoryPath(), walletname + FixedParameters.PUBLICKEY_EXTENSION, TkmTextUtils.toJson(pkbQTr2), false);
+                FileHelper.writeStringToFile(FileHelper.getPublicKeyDirectoryPath(), pkFileName, TkmTextUtils.toJson(pkbQTr2), false);
                 break;
             default:
                 throw new InvalidCypherException();

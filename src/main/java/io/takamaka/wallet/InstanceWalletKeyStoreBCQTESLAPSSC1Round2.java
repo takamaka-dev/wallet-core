@@ -257,7 +257,8 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
             KeyBean kb = new KeyBean("POWSEED", KeyContexts.WalletCypher.BCQTESLA_PS_1_R2, seed, concat);
             try {
                 WalletHelper.writeKeyFile(FileHelper.getDefaultWalletDirectoryPath(), currentWalletName, kb, password);
-            } catch (NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException ex) {
+            } catch (NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | io.takamaka.wallet.exceptions.KeystoreFileExistsException ex) {
+                // 0.10.0 — KeystoreFileExistsException added; pre-check shields.
                 log.error("instance error password", ex);
                 throw new WalletException("instance error password", ex);
             }
