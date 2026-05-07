@@ -123,16 +123,53 @@ public class FileHelper {
         }
     }
 
+    /**
+     * 0.10.0 — appRoot-aware overload. When {@code appRoot} is non-null,
+     * returns it directly (caller specifies the full application directory,
+     * e.g. {@code ~/.tkm-chain-fixture-1}). When null, falls back to the
+     * legacy synchronized resolution against {@code System.getProperty("user.home")}.
+     *
+     * <p>Per nodeflux/docs/TASK-wallet-core-app-root-overload.md, every
+     * Path-returning getter in this class follows the same overload pattern:
+     * existing zero-arg behaviour preserved; new {@code (Path appRoot)}
+     * variant chains through this method.
+     *
+     * @param appRoot explicit application directory; null falls back to legacy
+     * @return application directory path
+     * @since 0.10.0
+     */
+    public static final Path getDefaultApplicationDirectoryPath(Path appRoot) {
+        if (appRoot == null) {
+            return getDefaultApplicationDirectoryPath();
+        }
+        return appRoot;
+    }
+
     public static final Path getDeletedWalletFolderPath() {
         return Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), DefaultInitParameters.DELETED_WALLET_FOLDER);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getDeletedWalletFolderPath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), DefaultInitParameters.DELETED_WALLET_FOLDER);
     }
 
     public static final Path getReferenceKeysDatabaseFolder() {
         return Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), DefaultInitParameters.REFERENCE_KEYS_DATABASE_FOLDER);
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getReferenceKeysDatabaseFolder(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), DefaultInitParameters.REFERENCE_KEYS_DATABASE_FOLDER);
+    }
+
     public static final Path getMainDatabaseFolder() {
         return Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), DefaultInitParameters.STATE_DATABASE_FOLDER);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getMainDatabaseFolder(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), DefaultInitParameters.STATE_DATABASE_FOLDER);
     }
 
     public static final Path getTkmTempFolderPath() {
@@ -141,8 +178,18 @@ public class FileHelper {
                 FixedParameters.TEMP_DIR_NAME);
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getTkmTempFolderPath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), FixedParameters.TEMP_DIR_NAME);
+    }
+
     public static final Path getLiveStateFolter() {
         return Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), DefaultInitParameters.LIVE_STATE_FOLDER);
+    }
+
+    /** 0.10.0 — appRoot-aware overload (typo retained for API parity). @since 0.10.0 */
+    public static final Path getLiveStateFolter(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), DefaultInitParameters.LIVE_STATE_FOLDER);
     }
 
     public static final Path getApplicationConfigFile() {
@@ -151,9 +198,26 @@ public class FileHelper {
         }
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getApplicationConfigFile(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), FixedParameters.CONFIG_FILE_NAME);
+    }
+
     public static final Path getThemeConfigFilePath() {
         String userHome = rootDir;
         return Paths.get(userHome, DefaultInitParameters.APPLICATION_ROOT_FOLDER_NAME, "themeConfig.json");
+    }
+
+    /**
+     * 0.10.0 — appRoot-aware overload. NOTE: the zero-arg form references
+     * {@code rootDir} directly (a legacy artifact of the pre-overload state).
+     * The appRoot variant uses the foundation overload, which gives correct
+     * resolution with explicit appRoot OR falls back to legacy when null.
+     *
+     * @since 0.10.0
+     */
+    public static final Path getThemeConfigFilePath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), "themeConfig.json");
     }
 
     public static final Path getHotmokaTestDirectoryPath() {
@@ -162,10 +226,20 @@ public class FileHelper {
         return Paths.get(getDefaultApplicationDirectoryPath().toString(), DefaultInitParameters.HOTMOKA_TEST_FOLDER_NAME);
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getHotmokaTestDirectoryPath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), DefaultInitParameters.HOTMOKA_TEST_FOLDER_NAME);
+    }
+
     public static final Path getHotmokaFilesDirectoryPath() {
         String userHome = rootDir;
         //Log.log(Level.INFO, userHome);
         return Paths.get(getDefaultApplicationDirectoryPath().toString(), DefaultInitParameters.HOTMOKA_FILES_FOLDER_NAME);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getHotmokaFilesDirectoryPath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), DefaultInitParameters.HOTMOKA_FILES_FOLDER_NAME);
     }
 
     /**
@@ -179,6 +253,11 @@ public class FileHelper {
         return Paths.get(getDefaultApplicationDirectoryPath().toString(), FixedParameters.USER_WALLETS_FOLDER);
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getUserWalletsDirectoryPath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), FixedParameters.USER_WALLETS_FOLDER);
+    }
+
     /**
      * return the path of the application state file
      *
@@ -186,6 +265,11 @@ public class FileHelper {
      */
     public static final Path getDefaultStatePath() {
         return Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), CURRENT_STATE_FILE + STATE_FILE_EXTENSION);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getDefaultStatePath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), CURRENT_STATE_FILE + STATE_FILE_EXTENSION);
     }
 
     /**
@@ -197,6 +281,11 @@ public class FileHelper {
         return Paths.get(FileHelper.getChainDirectory().toString(), CURRENT_STATE_FILE + STATE_FILE_EXTENSION).toFile().exists();
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final boolean defaultStatePathExists(Path appRoot) {
+        return Paths.get(getChainDirectory(appRoot).toString(), CURRENT_STATE_FILE + STATE_FILE_EXTENSION).toFile().exists();
+    }
+
     /**
      * @return true if the default project home dir exist
      */
@@ -204,6 +293,11 @@ public class FileHelper {
         Path applicationDirectoryPath = getDefaultApplicationDirectoryPath();
         File applicationDirectoryFilePointer = applicationDirectoryPath.toFile();
         return applicationDirectoryFilePointer.isDirectory();
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final boolean homeDirExists(Path appRoot) {
+        return getDefaultApplicationDirectoryPath(appRoot).toFile().isDirectory();
     }
 
     /**
@@ -215,12 +309,22 @@ public class FileHelper {
         return themeFile.isFile();
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final boolean themeConfigFileExists(Path appRoot) {
+        return getThemeConfigFilePath(appRoot).toFile().isFile();
+    }
+
     /**
      *
      * @return default wallet directory path
      */
     public static final Path getDefaultWalletDirectoryPath() {
         return Paths.get(getDefaultApplicationDirectoryPath().toString(), WALLET_FOLDER);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getDefaultWalletDirectoryPath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), WALLET_FOLDER);
     }
 
     /**
@@ -231,12 +335,22 @@ public class FileHelper {
         return Paths.get(getDefaultWalletDirectoryPath().toString(), PUBLICKEY_FOLDER);
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getPublicKeyDirectoryPath(Path appRoot) {
+        return Paths.get(getDefaultWalletDirectoryPath(appRoot).toString(), PUBLICKEY_FOLDER);
+    }
+
     /**
      *
      * @return default transactions directory path
      */
     public static final Path getTransactionsDirectoryPath() {
         return Paths.get(getDefaultWalletDirectoryPath().toString(), TRANSACTION_FOLDER);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getTransactionsDirectoryPath(Path appRoot) {
+        return Paths.get(getDefaultWalletDirectoryPath(appRoot).toString(), TRANSACTION_FOLDER);
     }
 
     /**
@@ -248,12 +362,70 @@ public class FileHelper {
     }
 
     /**
+     * 0.10.0 — appRoot-aware overload. Routes to the legacy flat ephemeral
+     * directory under appRoot (or under default app dir when appRoot is null).
+     * For epoch-routed ephemeral storage, see
+     * {@link #getEphemeralWalletDirectoryPath(int, Path)}.
+     * @since 0.10.0
+     */
+    public static final Path getEphemeralWalletDirectoryPath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), WALLET_EPHEMERAL_FOLDER);
+    }
+
+    /**
+     * 0.10.0 — epoch-aware overload (Proposal 3 from
+     * TASK-wallet-core-app-root-overload.md §12.4).
+     *
+     * <p>Routing rules (strict — see §12.4.1):
+     * <ul>
+     *   <li>{@code epoch == -1}: legacy flat directory
+     *       {@code {appRoot}/ephemeralWallets/} — same as
+     *       {@link #getEphemeralWalletDirectoryPath(Path)}</li>
+     *   <li>{@code epoch >= 0}: subdirectory
+     *       {@code {appRoot}/ephemeralWallets/E{epoch:05d}/} —
+     *       per-epoch isolation; supports filesystem-level GC by epoch</li>
+     *   <li>{@code epoch < -1}: throws {@link IllegalArgumentException} —
+     *       no defensive fallthrough; defends against typos like
+     *       {@code Integer.MIN_VALUE} or {@code -2}</li>
+     * </ul>
+     *
+     * <p>Rationale: ephemeral wallets at scale (forward-key rotation use case
+     * surfaced in nodeflux v0.13.4) can produce 24000+ wallet files per epoch.
+     * A flat directory with that many files degrades performance on many
+     * filesystems and complicates lifecycle GC. Per-epoch routing makes both
+     * tractable.
+     *
+     * @param epoch -1 for legacy flat, >= 0 for epoch-routed subdir
+     * @param appRoot explicit application directory; null uses legacy default
+     * @return resolved ephemeral wallet directory path
+     * @throws IllegalArgumentException if epoch < -1
+     * @since 0.10.0
+     */
+    public static final Path getEphemeralWalletDirectoryPath(int epoch, Path appRoot) {
+        if (epoch == -1) {
+            return getEphemeralWalletDirectoryPath(appRoot);
+        }
+        if (epoch < -1) {
+            throw new IllegalArgumentException(
+                    "epoch must be either -1 (legacy flat dir) or >= 0 "
+                    + "(epoch-routed subdir); got " + epoch);
+        }
+        Path baseEphemeral = getEphemeralWalletDirectoryPath(appRoot);
+        return baseEphemeral.resolve(String.format("E%05d", epoch));
+    }
+
+    /**
      *
      * @return default address book directory path
      */
     public static final Path getDefaultAddressBookDirectoryPath() {
         return Paths.get(getDefaultWalletDirectoryPath().toString(),
                 ADDRESS_BOOK_FOLDER);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getDefaultAddressBookDirectoryPath(Path appRoot) {
+        return Paths.get(getDefaultWalletDirectoryPath(appRoot).toString(), ADDRESS_BOOK_FOLDER);
     }
 
     /**
@@ -263,6 +435,11 @@ public class FileHelper {
     public static final Path getDefaultLogsDirectoryPath() {
         return Paths.get(getDefaultApplicationDirectoryPath().toString(),
                 LOGS_FOLDER);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getDefaultLogsDirectoryPath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), LOGS_FOLDER);
     }
 
     /**
@@ -275,6 +452,11 @@ public class FileHelper {
         return Paths.get(getDefaultLogsDirectoryPath().toString(), pattern);
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path logFile(String pattern, Path appRoot) {
+        return Paths.get(getDefaultLogsDirectoryPath(appRoot).toString(), pattern);
+    }
+
     /**
      * return the path of default chain directory
      *
@@ -283,6 +465,11 @@ public class FileHelper {
     public static final Path getChainDirectory() {
         return Paths.get(getDefaultApplicationDirectoryPath().toString(),
                 CHAIN_FOLDER);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getChainDirectory(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), CHAIN_FOLDER);
     }
 
     /**
@@ -294,6 +481,11 @@ public class FileHelper {
         return Paths.get(getChainDirectory().getParent().toString(), CHAIN_LOCK_FILE);
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getChainLockFile(Path appRoot) {
+        return Paths.get(getChainDirectory(appRoot).getParent().toString(), CHAIN_LOCK_FILE);
+    }
+
     /**
      * return the path to the epoch folder
      *
@@ -303,6 +495,11 @@ public class FileHelper {
     public static final Path getEpochDirectory(int epochNumber) {
         return Paths.get(getChainDirectory().toString(),
                 EPOCH_FOLDER_PREFIX + epochNumber);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getEpochDirectory(int epochNumber, Path appRoot) {
+        return Paths.get(getChainDirectory(appRoot).toString(), EPOCH_FOLDER_PREFIX + epochNumber);
     }
 
     /**
@@ -317,6 +514,11 @@ public class FileHelper {
                 SLOT_FOLDER_PREFIX + slotNumber);
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getSlotDirectory(int epochNumber, int slotNumber, Path appRoot) {
+        return Paths.get(getEpochDirectory(epochNumber, appRoot).toString(), SLOT_FOLDER_PREFIX + slotNumber);
+    }
+
     /**
      * return the path to the zero block folder
      *
@@ -326,6 +528,11 @@ public class FileHelper {
         return Paths.get(getDefaultApplicationDirectoryPath().toString(), ZERO_BLOCK_FOLDER);
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getDefaultZeroBlockDirectory(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), ZERO_BLOCK_FOLDER);
+    }
+
     /**
      * return the path to the block required to initialize the chain
      *
@@ -333,6 +540,11 @@ public class FileHelper {
      */
     public static final Path getDefaultZeroBlockFile() {
         return Paths.get(getDefaultZeroBlockDirectory().toString(), ZERO_BLOCK_FILE_NUMBER);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getDefaultZeroBlockFile(Path appRoot) {
+        return Paths.get(getDefaultZeroBlockDirectory(appRoot).toString(), ZERO_BLOCK_FILE_NUMBER);
     }
 
     /**
@@ -348,10 +560,23 @@ public class FileHelper {
         return Paths.get(getSlotDirectory(epoch, slot).toString(), uid + "." + hkw.name());
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getKeyWriterBucketDirectory(int epoch, int slot, String uid, HexKeyWriter hkw, Path appRoot) {
+        return Paths.get(getSlotDirectory(epoch, slot, appRoot).toString(), uid + "." + hkw.name());
+    }
+
     public static final Path initKeyHexWriterDirectoryTree(int epoch, int slot, String uid, HexKeyWriter hkw) throws IOException {
         Path baseDir = null;
         log.info("init Key Hex Dir for " + hkw.name());
         baseDir = FileHelper.getKeyWriterBucketDirectory(epoch, slot, uid, hkw);
+        FileHelper.createDir(baseDir);
+        return baseDir;
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path initKeyHexWriterDirectoryTree(int epoch, int slot, String uid, HexKeyWriter hkw, Path appRoot) throws IOException {
+        log.info("init Key Hex Dir for " + hkw.name());
+        Path baseDir = FileHelper.getKeyWriterBucketDirectory(epoch, slot, uid, hkw, appRoot);
         FileHelper.createDir(baseDir);
         return baseDir;
     }
@@ -365,6 +590,11 @@ public class FileHelper {
         return getDefaultZeroBlockDirectory().toFile().isDirectory();
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final boolean defaultZeroBlockDirectoryExists(Path appRoot) {
+        return getDefaultZeroBlockDirectory(appRoot).toFile().isDirectory();
+    }
+
     /**
      * First block
      *
@@ -372,6 +602,11 @@ public class FileHelper {
      */
     public static final boolean defaultZeroBlockFileExists() {
         return getDefaultZeroBlockFile().toFile().isFile();
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final boolean defaultZeroBlockFileExists(Path appRoot) {
+        return getDefaultZeroBlockFile(appRoot).toFile().isFile();
     }
 
     /**
@@ -385,6 +620,11 @@ public class FileHelper {
         return getSlotDirectory(epochNumber, slotNumber).toFile().isDirectory();
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final boolean slotDirectoryExists(int epochNumber, int slotNumber, Path appRoot) {
+        return getSlotDirectory(epochNumber, slotNumber, appRoot).toFile().isDirectory();
+    }
+
     /**
      * Epoch directory
      *
@@ -395,10 +635,20 @@ public class FileHelper {
         return getEpochDirectory(epochNumber).toFile().isDirectory();
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final boolean epochDirectoryExists(int epochNumber, Path appRoot) {
+        return getEpochDirectory(epochNumber, appRoot).toFile().isDirectory();
+    }
+
     public static final Path getNodeNetworkSettings() {
         Path settingsPathFolder = FileHelper.getSettingsPathFolder();
         Path nodeNetworkSettingsPath = Paths.get(settingsPathFolder.toString(), FixedParameters.NODE_NETWORK_SETTINGS_FILE);
         return nodeNetworkSettingsPath;
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getNodeNetworkSettings(Path appRoot) {
+        return Paths.get(getSettingsPathFolder(appRoot).toString(), FixedParameters.NODE_NETWORK_SETTINGS_FILE);
     }
 
     /**
@@ -410,6 +660,11 @@ public class FileHelper {
         return getChainDirectory().toFile().isDirectory();
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final boolean chainDirectoryExists(Path appRoot) {
+        return getChainDirectory(appRoot).toFile().isDirectory();
+    }
+
     /**
      * Log directory
      *
@@ -417,6 +672,11 @@ public class FileHelper {
      */
     public static final boolean logsDirectoryExists() {
         return getDefaultLogsDirectoryPath().toFile().isDirectory();
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final boolean logsDirectoryExists(Path appRoot) {
+        return getDefaultLogsDirectoryPath(appRoot).toFile().isDirectory();
     }
 
     /**
@@ -442,6 +702,26 @@ public class FileHelper {
         }
         log.info("slot directory " + getSlotDirectory(epochNumber, slotNumber));
         return getSlotDirectory(epochNumber, slotNumber);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path createSlotDirectory(int epochNumber, int slotNumber, Path appRoot) throws IOException {
+        Path chainDir = getChainDirectory(appRoot);
+        if (!chainDir.toFile().isDirectory()) {
+            createDir(chainDir);
+        }
+        log.info("chain directory " + chainDir);
+        Path epochDir = getEpochDirectory(epochNumber, appRoot);
+        if (!epochDir.toFile().isDirectory()) {
+            createDir(epochDir);
+        }
+        log.info("epoch directory " + epochDir);
+        Path slotDir = getSlotDirectory(epochNumber, slotNumber, appRoot);
+        if (!slotDir.toFile().isDirectory()) {
+            createDir(slotDir);
+        }
+        log.info("slot directory " + slotDir);
+        return slotDir;
     }
 
     /**
@@ -586,9 +866,19 @@ public class FileHelper {
         return settingsFolder;
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getSettingsPathFolder(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), FixedParameters.SETTINGS_FOLDER);
+    }
+
     public static final Path getTransactionsDumpPathFolder() {
         Path settingsFolder = Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER);
         return settingsFolder;
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getTransactionsDumpPathFolder(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER);
     }
 
     public static final Path getSimulationPathFolder() {
@@ -596,9 +886,19 @@ public class FileHelper {
         return settingsFolder;
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getSimulationPathFolder(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), FixedParameters.SIMULATION_DUMP_FOLDER);
+    }
+
     public static final Path getPSQLFilePath() {
         Path settingsFolder = Paths.get(FileHelper.getSettingsPathFolder().toString(), DefaultInitParameters.psqlSettingsFile);
         return settingsFolder;
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getPSQLFilePath(Path appRoot) {
+        return Paths.get(getSettingsPathFolder(appRoot).toString(), DefaultInitParameters.psqlSettingsFile);
     }
 
     public static final Path getPSQLTablespacesRootFolderPath() {
@@ -606,17 +906,32 @@ public class FileHelper {
         return settingsFolder;
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getPSQLTablespacesRootFolderPath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), DefaultInitParameters.psqlTablespacesRootFolder);
+    }
+
     public static final Path getPSQLTablespacesBlockTable() {
         Path settingsFolder = Paths.get(FileHelper.getPSQLTablespacesRootFolderPath().toString(), DefaultInitParameters.psqlTablespacesBlocksFolderName);
         return settingsFolder;
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getPSQLTablespacesBlockTable(Path appRoot) {
+        return Paths.get(getPSQLTablespacesRootFolderPath(appRoot).toString(), DefaultInitParameters.psqlTablespacesBlocksFolderName);
+    }
+
     public static final Path getTransactionsDumpPathFolder(String pidName) throws IOException {
-        // 0.10.0 M2' fix — replace silent null-returns on creation failure
-        // with explicit IOException. Prior callers receiving null could not
-        // distinguish "folder didn't exist and creation failed" from
-        // legitimate empty/missing state.
-        Path baseDumpFolder = Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER);
+        return getTransactionsDumpPathFolder(pidName, null);
+    }
+
+    /**
+     * 0.10.0 — appRoot-aware overload. M2' fix retained: explicit IOException
+     * on creation failure, no silent null-return.
+     * @since 0.10.0
+     */
+    public static final Path getTransactionsDumpPathFolder(String pidName, Path appRoot) throws IOException {
+        Path baseDumpFolder = Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER);
         if (!baseDumpFolder.toFile().isDirectory()) {
             FileHelper.createDir(baseDumpFolder);
         }
@@ -625,7 +940,7 @@ public class FileHelper {
                     "getTransactionsDumpPathFolder: failed to create base"
                     + " transactions-dump folder at " + baseDumpFolder);
         }
-        Path inner = Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER, pidName);
+        Path inner = Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), FixedParameters.TRANSACTIONS_DUMP_FOLDER, pidName);
         FileHelper.createDir(inner);
         if (!inner.toFile().isDirectory()) {
             throw new IOException(
@@ -782,16 +1097,32 @@ public class FileHelper {
         return globalStorageDir;
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getGlobalFolderPath(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), FixedParameters.GLOBAL_FOLDER);
+    }
+
     public static final Path getJarStorage(String b64filename, FixedParameters.GLOBAL_FOLDER_FILES gff) {
         String fromB64ToHEX = TkmSignUtils.fromB64ToHEX(b64filename);
         Path globalStorageDir = Paths.get(FileHelper.getDefaultApplicationDirectoryPath().toString(), FixedParameters.GLOBAL_FOLDER, fromB64ToHEX + gff.getExtension());
         return globalStorageDir;
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getJarStorage(String b64filename, FixedParameters.GLOBAL_FOLDER_FILES gff, Path appRoot) {
+        String fromB64ToHEX = TkmSignUtils.fromB64ToHEX(b64filename);
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), FixedParameters.GLOBAL_FOLDER, fromB64ToHEX + gff.getExtension());
+    }
+
     public static final Path getQteslaReferenceFolder() {
         Path defaultApplicationDirectoryPath = getDefaultApplicationDirectoryPath();
         Path folder = Paths.get(defaultApplicationDirectoryPath.toString(), FixedParameters.REFERENCE_QTESLA_ADDR_FOLDER);
         return folder;
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getQteslaReferenceFolder(Path appRoot) {
+        return Paths.get(getDefaultApplicationDirectoryPath(appRoot).toString(), FixedParameters.REFERENCE_QTESLA_ADDR_FOLDER);
     }
 
     public static final Path getQteslaReferenceAddressFolder(String addr) throws ThreadSafeUtilsException {
@@ -807,8 +1138,35 @@ public class FileHelper {
         return Paths.get(getQteslaReferenceFolder().toString(), head);
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path getQteslaReferenceAddressFolder(String addr, Path appRoot) throws ThreadSafeUtilsException {
+        if (TkmTextUtils.isNullOrBlank(addr)) {
+            log.error("NULL ADDRESS VALUE");
+            throw new ThreadSafeUtilsException("NULL ADDRESS VALUE");
+        }
+        if (addr.length() < QTESLA_COMPRESSED_ADDRESSES_FOLDER_LEVELS) {
+            log.error("BAD ADDRESS LENGHT");
+            throw new ThreadSafeUtilsException("BAD ADDRESS LENGHT");
+        }
+        String head = addr.substring(0, QTESLA_COMPRESSED_ADDRESSES_FOLDER_LEVELS);
+        return Paths.get(getQteslaReferenceFolder(appRoot).toString(), head);
+    }
+
     public static final Path createIfNotExistQteslaReferenceFolder(String addr) throws ThreadSafeUtilsException, IOException {
         Path aFold = getQteslaReferenceAddressFolder(addr);
+        if (aFold == null) {
+            log.error("FOLDER ERROR");
+            return null;
+        }
+        if (!directoryExists(aFold)) {
+            createDir(aFold);
+        }
+        return aFold;
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final Path createIfNotExistQteslaReferenceFolder(String addr, Path appRoot) throws ThreadSafeUtilsException, IOException {
+        Path aFold = getQteslaReferenceAddressFolder(addr, appRoot);
         if (aFold == null) {
             log.error("FOLDER ERROR");
             return null;
