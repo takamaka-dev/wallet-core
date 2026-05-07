@@ -84,6 +84,9 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
     private final Object getPublicKeyAtIndexHexLock = new Object();
     private final Object getPublicKeyAtIndexByteLock = new Object();
 
+    /** 0.10.0 — appRoot for filesystem isolation. @since 0.10.0 */
+    private Path appRoot;
+
     /**
      * Method to get the cypher used in the current wallet.
      *
@@ -117,14 +120,20 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
      * wallet
      */
     public InstanceWalletKeyStoreBCRSA4096ENC256(String walletName) throws UnlockWalletException {
+        this(walletName, (Path) null);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public InstanceWalletKeyStoreBCRSA4096ENC256(String walletName, Path appRoot) throws UnlockWalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
                     currentWalletName = walletName + DefaultInitParameters.WALLET_EXTENSION;
+                    this.appRoot = appRoot;
                     signKeys = Collections.synchronizedMap(new HashMap<Integer, AsymmetricCipherKeyPair>());
                     hexPublicKeys = Collections.synchronizedMap(new HashMap<Integer, String>());
                     bytePublicKeys = Collections.synchronizedMap(new HashMap<Integer, byte[]>());
-                    initWallet("Password");
+                    initWallet("Password", appRoot);
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error name", ex);
                     throw new UnlockWalletException(ex);
@@ -135,26 +144,21 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
 
     }
 
-    /**
-     * Constructor for InstanceWalletKeyStoreBCRSA4096ENC256.
-     *
-     * It initializes the collections for key pairs and public keys, and calls
-     * initWallet method to initialize or load an existing wallet
-     *
-     * @param walletName the name of the wallet file
-     * @param password the password used to encrypt the keyfile
-     * @throws UnlockWalletException if there is an error with unlocking the
-     * wallet
-     */
     public InstanceWalletKeyStoreBCRSA4096ENC256(String walletName, String password) throws UnlockWalletException {
+        this(walletName, password, (Path) null);
+    }
+
+    /** 0.10.0 — appRoot-aware overload (with password). @since 0.10.0 */
+    public InstanceWalletKeyStoreBCRSA4096ENC256(String walletName, String password, Path appRoot) throws UnlockWalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
                     currentWalletName = walletName + DefaultInitParameters.WALLET_EXTENSION;
+                    this.appRoot = appRoot;
                     signKeys = Collections.synchronizedMap(new HashMap<Integer, AsymmetricCipherKeyPair>());
                     hexPublicKeys = Collections.synchronizedMap(new HashMap<Integer, String>());
                     bytePublicKeys = Collections.synchronizedMap(new HashMap<Integer, byte[]>());
-                    initWallet(password);
+                    initWallet(password, appRoot);
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error name password", ex);
                     throw new UnlockWalletException("instance error name password", ex);
@@ -166,27 +170,25 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
     }
 
     /**
-     * Constructor for InstanceWalletKeyStoreBCRSA4096ENC256.
-     *
-     * It initializes the collections for key pairs and public keys, and calls
-     * initWallet method to initialize or load an existing wallet
-     *
-     * @param walletName the name of the wallet file
-     * @param nCharForSeed the number of characters for the seed
-     * @throws UnlockWalletException if there is an error with unlocking the
-     * wallet
-     * @throws WalletEmptySeedException if the seed is empty
-     * @throws WalletBurnedException if the seed is "burned"
+     * 0.10.0 — BREAKING change. Replaces (walletName, int nCharForSeed)
+     * ephemeral ctor with epoch-aware signature.
+     * @since 0.10.0
      */
-    public InstanceWalletKeyStoreBCRSA4096ENC256(String walletName, int nCharForSeed) throws UnlockWalletException, WalletEmptySeedException, WalletBurnedException {
+    public InstanceWalletKeyStoreBCRSA4096ENC256(String walletName, int seedLength, int epoch) throws UnlockWalletException, WalletEmptySeedException, WalletBurnedException {
+        this(walletName, seedLength, epoch, null);
+    }
+
+    /** 0.10.0 — BREAKING ephemeral ctor with appRoot. @since 0.10.0 */
+    public InstanceWalletKeyStoreBCRSA4096ENC256(String walletName, int seedLength, int epoch, Path appRoot) throws UnlockWalletException, WalletEmptySeedException, WalletBurnedException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
                     currentWalletName = walletName + DefaultInitParameters.WALLET_EXTENSION;
+                    this.appRoot = appRoot;
                     signKeys = Collections.synchronizedMap(new HashMap<Integer, AsymmetricCipherKeyPair>());
                     hexPublicKeys = Collections.synchronizedMap(new HashMap<Integer, String>());
                     bytePublicKeys = Collections.synchronizedMap(new HashMap<Integer, byte[]>());
-                    initWallet(nCharForSeed);
+                    initWalletEphemeral(seedLength, epoch, appRoot);
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error seed", ex);
                     throw new UnlockWalletException("instance error seed", ex);
@@ -223,11 +225,20 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
      * available
      */
     private void initWallet(String password) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException {
-        if (!FileHelper.walletDirExists()) {
-            //FileHelper.createDir(FileHelper.getDefaultWalletDirectoryPath());
-            FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
+        initWallet(password, null);
+    }
+
+    /** 0.10.0 — appRoot-aware variant. @since 0.10.0 */
+    private void initWallet(String password, Path appRoot) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException {
+        // 0.10.0 — ensure full path chain exists for fresh appRoot tempdirs.
+        Path appDir = FileHelper.getDefaultApplicationDirectoryPath(appRoot);
+        if (!appDir.toFile().isDirectory()) {
+            FileHelper.createDir(appDir);
         }
-        if (!FileHelper.fileExists(Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), currentWalletName))) {
+        if (!FileHelper.walletDirExists(appRoot)) {
+            FileHelper.createDir(FileHelper.getDefaultWalletDirectoryPath(appRoot));
+        }
+        if (!FileHelper.fileExists(Paths.get(FileHelper.getDefaultWalletDirectoryPath(appRoot).toString(), currentWalletName))) {
             List<String> words = SeedGenerator.generateWords();
             seed = SeedGenerator.generateSeedPWH(words);
 
@@ -238,7 +249,7 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
 
             KeyBean kb = new KeyBean("POWSEED", KeyContexts.WalletCypher.Ed25519BC, seed, concat);
             try {
-                WalletHelper.writeKeyFile(FileHelper.getDefaultWalletDirectoryPath(), currentWalletName, kb, password);
+                WalletHelper.writeKeyFile(FileHelper.getDefaultWalletDirectoryPath(appRoot), currentWalletName, kb, password);
 
             } catch (NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | io.takamaka.wallet.exceptions.KeystoreFileExistsException ex) {
                 // 0.10.0 — KeystoreFileExistsException added; pre-check shields.
@@ -246,14 +257,11 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
                 throw new UnlockWalletException("instance error password", ex);
             }
         }
-        Path currentWalletPath = Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), currentWalletName);
+        Path currentWalletPath = Paths.get(FileHelper.getDefaultWalletDirectoryPath(appRoot).toString(), currentWalletName);
 
         if (FileHelper.fileExists(currentWalletPath)) {
             try {
-                //System.out.println("loading " + currentWalletName + " wallet seed...");
                 seed = WalletHelper.readKeyFile(currentWalletPath, password).getSeed();
-                //System.out.println("seed loaded");
-                //System.out.println(seed);
             } catch (InvalidAlgorithmParameterException | FileNotFoundException | NoSuchProviderException | NoSuchPaddingException | InvalidKeyException ex) {
                 log.error("initWallet unreadable file?", ex);
                 throw new IOException("initWallet unreadable file?", ex);
@@ -285,23 +293,33 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
      * @throws WalletBurnedException if the seed is "burned"
      * @throws WalletEmptySeed
      */
-    private void initWallet(int nCharSeed) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletBurnedException, WalletEmptySeedException {
-        if (!FileHelper.walletDirExists()) {
-            FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
+    /** 0.10.0 — replaces initWallet(int) with epoch- + appRoot-aware ephemeral routing. @since 0.10.0 */
+    private void initWalletEphemeral(int seedLength, int epoch, Path appRoot) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletBurnedException, WalletEmptySeedException {
+        // 0.10.0 — pre-create entire path chain.
+        Path appDir = FileHelper.getDefaultApplicationDirectoryPath(appRoot);
+        if (!appDir.toFile().isDirectory()) {
+            FileHelper.createDir(appDir);
         }
-        if (!FileHelper.fileExists(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName))) {
+        Path flatEphDir = FileHelper.getEphemeralWalletDirectoryPath(appRoot);
+        if (!flatEphDir.toFile().isDirectory()) {
+            FileHelper.createDir(flatEphDir);
+        }
+        Path ephDir = FileHelper.getEphemeralWalletDirectoryPath(epoch, appRoot);
+        if (!ephDir.toFile().isDirectory()) {
+            FileHelper.createDir(ephDir);
+        }
+        Path currentWalletPath = Paths.get(ephDir.toString(), currentWalletName);
+        if (!FileHelper.fileExists(currentWalletPath)) {
             RandomStringGenerator generator = new RandomStringGenerator.Builder()
                     .withinRange('0', 'z')
                     .filteredBy(Character::isLetterOrDigit)
                     .get();
-            seed = generator.generate(nCharSeed);
-            FileHelper.writeStringToFile(FileHelper.getEphemeralWalletDirectoryPath(), currentWalletName, seed, false);
+            seed = generator.generate(seedLength);
+            FileHelper.writeStringToFile(ephDir, currentWalletName, seed, false);
         }
-        Path currentWalletPath = Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName);
-
         if (FileHelper.fileExists(currentWalletPath)) {
             try {
-                seed = FileHelper.readStringFromFile(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName));
+                seed = FileHelper.readStringFromFile(currentWalletPath);
                 if ("burned".equals(seed)) {
                     throw new WalletBurnedException("WALLET IS BURNED");
                 }

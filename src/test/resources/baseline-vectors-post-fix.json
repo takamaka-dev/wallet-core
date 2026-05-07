@@ -1,7 +1,7 @@
 {
   "schema" : "baseline-vectors-v1",
   "capture_type" : "post-fix",
-  "generated_at" : "2026-05-07T12:18:48.062405235Z",
+  "generated_at" : "2026-05-07T12:58:32.456116933Z",
   "purpose" : "Phase C of wallet-core 0.10.0 audit-driven-fixes campaign.",
   "source_mnemonics" : "src/test/resources/baseline-mnemonics.json",
   "warning" : "Test fixtures only. DO NOT USE FOR PRODUCTION.",

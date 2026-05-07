@@ -584,7 +584,9 @@ public class WalletTest {
         SeededRandom seededRandomPIntTest = new SeededRandom("pollo", "test", 1);
         //SeededRandom seededRandom = new SeededRandom("pollo", "test", 1);
         byte[] by = new byte[32];
-        InstanceWalletKeyStoreBCED25519 iwk = new InstanceWalletKeyStoreBCED25519("test_key", 1024);
+        // 0.10.0 — ephemeral ctor signature changed; -1 routes to legacy
+        // flat directory (preserves pre-0.10.0 file layout for this test).
+        InstanceWalletKeyStoreBCED25519 iwk = new InstanceWalletKeyStoreBCED25519("test_key", 1024, -1);
         String[] wallR1 = new String[44];
         String[] wallR2 = new String[44];
         for (int i = 0; i < 10; i++) {

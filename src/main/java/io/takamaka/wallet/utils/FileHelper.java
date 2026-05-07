@@ -819,12 +819,22 @@ public class FileHelper {
         return getDefaultWalletDirectoryPath().toFile().isDirectory();
     }
 
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final boolean walletDirExists(Path appRoot) {
+        return getDefaultWalletDirectoryPath(appRoot).toFile().isDirectory();
+    }
+
     /**
      *
      * @return true if the directory exist
      */
     public static final boolean publicKeyDirExists() {
         return getPublicKeyDirectoryPath().toFile().isDirectory();
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public static final boolean publicKeyDirExists(Path appRoot) {
+        return getPublicKeyDirectoryPath(appRoot).toFile().isDirectory();
     }
 
     /**
