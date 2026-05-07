@@ -395,10 +395,10 @@ public class FileHelper {
      * filesystems and complicates lifecycle GC. Per-epoch routing makes both
      * tractable.
      *
-     * @param epoch -1 for legacy flat, >= 0 for epoch-routed subdir
+     * @param epoch -1 for legacy flat, &gt;= 0 for epoch-routed subdir
      * @param appRoot explicit application directory; null uses legacy default
      * @return resolved ephemeral wallet directory path
-     * @throws IllegalArgumentException if epoch < -1
+     * @throws IllegalArgumentException if epoch &lt; -1
      * @since 0.10.0
      */
     public static final Path getEphemeralWalletDirectoryPath(int epoch, Path appRoot) {

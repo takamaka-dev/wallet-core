@@ -11,8 +11,27 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.takamaka.wallet</groupId>
     <artifactId>takamaka-core-wallet</artifactId>
-    <version>0.9.4.6-SNAPSHOT</version>
+    <version>0.10.0-SNAPSHOT</version>
     <packaging>jar</packaging>
+    <!--
+        0.10.0 — minor bump signaling:
+        - additive: ~45 FileHelper Path-returning getters now have
+          (Path appRoot) overloads + 9 keystore ctor overloads
+        - additive: epoch-routed ephemeral path
+          getEphemeralWalletDirectoryPath(int epoch, Path appRoot)
+        - BREAKING: ephemeral wallet ctor (walletName, int nCharSeed)
+          replaced with (walletName, int seedLength, int epoch).
+          Callers MUST update with explicit epoch parameter (use -1
+          for legacy flat-dir routing).
+        - audit-driven: 7 silent-failure patterns promoted to hard
+          exceptions (KeystoreFileExistsException,
+          PublicKeyFileExistsException, IOException on rename/delete
+          failure, IllegalArgumentException on getFileNameList null,
+          rename overwrite=false now honored).
+        See nodeflux/docs/TASK-wallet-core-app-root-overload.md for
+        the full scope and migration recipe.
+    -->
+
     <licenses>
         <license>
             <name>The Apache License, Version 2.0</name>
