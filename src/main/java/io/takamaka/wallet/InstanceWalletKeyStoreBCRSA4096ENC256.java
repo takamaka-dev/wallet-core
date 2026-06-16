@@ -50,6 +50,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -80,9 +82,13 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
     private final static KeyContexts.WalletCypher walletCypher = KeyContexts.WalletCypher.RSA_4096_ECB_OAEP_SHA256;
     private static final String ALGORITHM = "RSA";
     private final Object constructorLock = new Object();
-    private final Object getKeyPairAtIndexLock = new Object();
-    private final Object getPublicKeyAtIndexHexLock = new Object();
-    private final Object getPublicKeyAtIndexByteLock = new Object();
+    /**
+     * DR-003 — per-index monitors replacing the former single instance-wide
+     * lock. Distinct indices derive concurrently; a given index derives exactly
+     * once (inner re-check). The computeIfAbsent mapping function allocates only
+     * a cheap Object, so it never holds the bin lock during heavy keygen.
+     */
+    private final ConcurrentMap<Integer, Object> getKeyPairAtIndexLocks = new ConcurrentHashMap<>();
 
     /** 0.10.0 — appRoot for filesystem isolation. @since 0.10.0 */
     private Path appRoot;
@@ -346,28 +352,36 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
      */
     @Override
     public AsymmetricCipherKeyPair getKeyPairAtIndex(int index) throws InvalidWalletIndexException {
-        if (!signKeys.containsKey(index)) {
-            synchronized (getKeyPairAtIndexLock) {
-                //call key creation
-                RSAKeyPairGenerator rsaKeyPairGenerator = new RSAKeyPairGenerator();
-                if (index < 0 || index >= Integer.MAX_VALUE) {
-                    throw new InvalidWalletIndexException("index outside wallet range");
-                }
-                /**
-                 * https://docs.oracle.com/javase/8/docs/api/java/security/spec/RSAKeyGenParameterSpec.html
-                 */
-
-                /**
-                 * Always instantiate a new SeededRandom generator to get the
-                 * deterministically correct seed.
-                 *
-                 */
-                rsaKeyPairGenerator.init(new RSAKeyGenerationParameters(RSAKeyGenParameterSpec.F4, new SeededRandom(seed, KeyContexts.RSA_PK_ENCRYPTION, index + 1), 4096, 1));
-                //keyPairGenerator.init(new Ed25519KeyGenerationParameters(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1)));
-                signKeys.put(index, rsaKeyPairGenerator.generateKeyPair());
-            }
+        if (index < 0 || index >= Integer.MAX_VALUE) {
+            throw new InvalidWalletIndexException("index outside wallet range");
         }
-        return signKeys.get(index);
+        AsymmetricCipherKeyPair cached = signKeys.get(index);
+        if (cached != null) {
+            return cached;
+        }
+        // DR-003: per-index monitor — distinct indices run in parallel; same index runs once.
+        synchronized (getKeyPairAtIndexLocks.computeIfAbsent(index, k -> new Object())) {
+            cached = signKeys.get(index); // inner re-check under the per-index lock
+            if (cached != null) {
+                return cached;
+            }
+            //call key creation
+            RSAKeyPairGenerator rsaKeyPairGenerator = new RSAKeyPairGenerator();
+            /**
+             * https://docs.oracle.com/javase/8/docs/api/java/security/spec/RSAKeyGenParameterSpec.html
+             */
+
+            /**
+             * Always instantiate a new SeededRandom generator to get the
+             * deterministically correct seed.
+             *
+             */
+            rsaKeyPairGenerator.init(new RSAKeyGenerationParameters(RSAKeyGenParameterSpec.F4, new SeededRandom(seed, KeyContexts.RSA_PK_ENCRYPTION, index + 1), 4096, 1));
+            //keyPairGenerator.init(new Ed25519KeyGenerationParameters(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1)));
+            AsymmetricCipherKeyPair keyPair = rsaKeyPairGenerator.generateKeyPair();
+            signKeys.put(index, keyPair);
+            return keyPair;
+        }
     }
 
     /**
@@ -386,32 +400,33 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
      */
     @Override
     public String getPublicKeyAtIndexURL64(int index) throws InvalidWalletIndexException, PublicKeySerializzationException {
-        if (!hexPublicKeys.containsKey(index)) {
-            synchronized (getPublicKeyAtIndexHexLock) {
-                try {
-                    AsymmetricCipherKeyPair keyPairAtIndex = getKeyPairAtIndex(index);
-                    //UrlBase64 b64e = new UrlBase64();
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
-                    RSAKeyParameters rsaPublic = (RSAKeyParameters) aPublic;
-                    RSAPublicKeySpec spec = new RSAPublicKeySpec(rsaPublic.getModulus(), rsaPublic.getExponent());
-                    KeyFactory factory = KeyFactory.getInstance("RSA");
-                    PublicKey pub = factory.generatePublic(spec);
-                    X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(pub.getEncoded());
+        String cached = hexPublicKeys.get(index);
+        if (cached != null) {
+            return cached;
+        }
+        // DR-003: serialization is cheap + idempotent — lock-free; a rare duplicate is harmless.
+        try {
+            AsymmetricCipherKeyPair keyPairAtIndex = getKeyPairAtIndex(index);
+            //UrlBase64 b64e = new UrlBase64();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
+            RSAKeyParameters rsaPublic = (RSAKeyParameters) aPublic;
+            RSAPublicKeySpec spec = new RSAPublicKeySpec(rsaPublic.getModulus(), rsaPublic.getExponent());
+            KeyFactory factory = KeyFactory.getInstance("RSA");
+            PublicKey pub = factory.generatePublic(spec);
+            X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(pub.getEncoded());
 
 //                    KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
 //                    return keyFactory.generatePublic(x509KeySpec);
-                    UrlBase64.encode(x509KeySpec.getEncoded(), baos);
-                    hexPublicKeys.put(index, baos.toString());
+            UrlBase64.encode(x509KeySpec.getEncoded(), baos);
+            String encoded = baos.toString();
 //                    baos.close();
-                } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException ex) {
-                    log.error("Wallet can not serialize public key", ex);
-                    throw new PublicKeySerializzationException(ex);
-                }
-
-            }
+            String previous = hexPublicKeys.putIfAbsent(index, encoded);
+            return previous != null ? previous : encoded;
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException ex) {
+            log.error("Wallet can not serialize public key", ex);
+            throw new PublicKeySerializzationException(ex);
         }
-        return hexPublicKeys.get(index);
     }
 
     /**
@@ -428,28 +443,30 @@ public class InstanceWalletKeyStoreBCRSA4096ENC256 implements InstanceWalletKeys
      */
     @Override
     public byte[] getPublicKeyAtIndexByte(int index) throws InvalidWalletIndexException, PublicKeySerializzationException {
-        if (!bytePublicKeys.containsKey(index)) {
-            synchronized (getPublicKeyAtIndexByteLock) {
-                try {
-                    AsymmetricCipherKeyPair keyPairAtIndex = getKeyPairAtIndex(index);
-                    //UrlBase64 b64e = new UrlBase64();
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
-                    RSAKeyParameters rsaPublic = (RSAKeyParameters) aPublic;
-                    RSAPublicKeySpec spec = new RSAPublicKeySpec(rsaPublic.getModulus(), rsaPublic.getExponent());
-                    KeyFactory factory = KeyFactory.getInstance("RSA");
-                    PublicKey pub = factory.generatePublic(spec);
-//                    new RSAKeyParameters(isInitialized, BigInteger.ONE, BigInteger.ONE)
-                    //Ed25519PublicKeyParameters publicKey = (Ed25519PublicKeyParameters) aPublic;
-                    bytePublicKeys.put(index, pub.getEncoded());
-                    baos.close();
-                } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException ex) {
-                    log.error("Wallet can not serialize public key", ex);
-                    throw new PublicKeySerializzationException(ex);
-                }
-            }
+        byte[] cached = bytePublicKeys.get(index);
+        if (cached != null) {
+            return cached;
         }
-        return bytePublicKeys.get(index);
+        // DR-003: serialization is cheap + idempotent — lock-free; a rare duplicate is harmless.
+        try {
+            AsymmetricCipherKeyPair keyPairAtIndex = getKeyPairAtIndex(index);
+            //UrlBase64 b64e = new UrlBase64();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
+            RSAKeyParameters rsaPublic = (RSAKeyParameters) aPublic;
+            RSAPublicKeySpec spec = new RSAPublicKeySpec(rsaPublic.getModulus(), rsaPublic.getExponent());
+            KeyFactory factory = KeyFactory.getInstance("RSA");
+            PublicKey pub = factory.generatePublic(spec);
+//                    new RSAKeyParameters(isInitialized, BigInteger.ONE, BigInteger.ONE)
+            //Ed25519PublicKeyParameters publicKey = (Ed25519PublicKeyParameters) aPublic;
+            byte[] encoded = pub.getEncoded();
+            baos.close();
+            byte[] previous = bytePublicKeys.putIfAbsent(index, encoded);
+            return previous != null ? previous : encoded;
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException ex) {
+            log.error("Wallet can not serialize public key", ex);
+            throw new PublicKeySerializzationException(ex);
+        }
     }
 
     /**

@@ -36,6 +36,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -60,9 +62,13 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
     private boolean isInitialized; //default to false
     private final static KeyContexts.WalletCypher walletCypher = KeyContexts.WalletCypher.BCQTESLA_PS_1_R2;
     private final Object constructorLock = new Object();
-    private final Object getKeyPairAtIndexLock = new Object();
-    private final Object getPublicKeyAtIndexHexLock = new Object();
-    private final Object getPublicKeyAtIndexByteLock = new Object();
+    /**
+     * DR-003 — per-index monitors replacing the former single instance-wide
+     * lock. Distinct indices derive concurrently; a given index derives exactly
+     * once (inner re-check). The computeIfAbsent mapping function allocates only
+     * a cheap Object, so it never holds the bin lock during heavy keygen.
+     */
+    private final ConcurrentMap<Integer, Object> getKeyPairAtIndexLocks = new ConcurrentHashMap<>();
 
     /** 0.10.0 — appRoot for filesystem isolation. @since 0.10.0 */
     private Path appRoot;
@@ -328,16 +334,23 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         if (Security.getProvider("BCPQC") == null) {
             Security.addProvider(new BouncyCastlePQCProvider());
         }
-        if (!signKeys.containsKey(i)) {
-            synchronized (getKeyPairAtIndexLock) {
-                if (i < 0 || i >= Integer.MAX_VALUE) {
-                    throw new InvalidWalletIndexException("index outside wallet range");
-                }
-
-                signKeys.put(i, QTR2KeyPairGenerator.getKeyPair(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, i + 1)));
-            }
+        if (i < 0 || i >= Integer.MAX_VALUE) {
+            throw new InvalidWalletIndexException("index outside wallet range");
         }
-        return signKeys.get(i);
+        AsymmetricCipherKeyPair cached = signKeys.get(i);
+        if (cached != null) {
+            return cached;
+        }
+        // DR-003: per-index monitor — distinct indices run in parallel; same index runs once.
+        synchronized (getKeyPairAtIndexLocks.computeIfAbsent(i, k -> new Object())) {
+            cached = signKeys.get(i); // inner re-check under the per-index lock
+            if (cached != null) {
+                return cached;
+            }
+            AsymmetricCipherKeyPair keyPair = QTR2KeyPairGenerator.getKeyPair(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, i + 1));
+            signKeys.put(i, keyPair);
+            return keyPair;
+        }
     }
 
     /**
@@ -355,19 +368,19 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      */
     @Override
     public String getPublicKeyAtIndexURL64(int i) throws InvalidWalletIndexException, PublicKeySerializzationException {
-        if (!hexPublicKeys.containsKey(i)) {
-            synchronized (getPublicKeyAtIndexHexLock) {
-                try {
-
-                    hexPublicKeys.put(i, QTR2KeyPairGenerator.getStringPublicKey(getKeyPairAtIndex(i)));
-                } catch (IOException ex) {
-                    log.error("Wallet can not serialize public key", ex);
-                    throw new PublicKeySerializzationException(ex);
-                }
-
-            }
+        String cached = hexPublicKeys.get(i);
+        if (cached != null) {
+            return cached;
         }
-        return hexPublicKeys.get(i);
+        // DR-003: serialization is cheap + idempotent — lock-free; a rare duplicate is harmless.
+        try {
+            String encoded = QTR2KeyPairGenerator.getStringPublicKey(getKeyPairAtIndex(i));
+            String previous = hexPublicKeys.putIfAbsent(i, encoded);
+            return previous != null ? previous : encoded;
+        } catch (IOException ex) {
+            log.error("Wallet can not serialize public key", ex);
+            throw new PublicKeySerializzationException(ex);
+        }
     }
 
     /**
@@ -384,18 +397,19 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      */
     @Override
     public byte[] getPublicKeyAtIndexByte(int i) throws InvalidWalletIndexException, PublicKeySerializzationException {
-        if (!bytePublicKeys.containsKey(i)) {
-            synchronized (getPublicKeyAtIndexByteLock) {
-                try {
-                    bytePublicKeys.put(i, QTR2KeyPairGenerator.getBytePublicKey(getKeyPairAtIndex(i)));
-                } catch (IOException ex) {
-                    log.error("Wallet can not serialize public key", ex);
-                    throw new PublicKeySerializzationException(ex);
-                }
-
-            }
+        byte[] cached = bytePublicKeys.get(i);
+        if (cached != null) {
+            return cached;
         }
-        return bytePublicKeys.get(i);
+        // DR-003: serialization is cheap + idempotent — lock-free; a rare duplicate is harmless.
+        try {
+            byte[] encoded = QTR2KeyPairGenerator.getBytePublicKey(getKeyPairAtIndex(i));
+            byte[] previous = bytePublicKeys.putIfAbsent(i, encoded);
+            return previous != null ? previous : encoded;
+        } catch (IOException ex) {
+            log.error("Wallet can not serialize public key", ex);
+            throw new PublicKeySerializzationException(ex);
+        }
     }
 
     /**

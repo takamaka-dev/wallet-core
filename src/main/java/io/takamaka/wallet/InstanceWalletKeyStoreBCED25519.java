@@ -34,6 +34,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -62,9 +64,13 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
     private boolean isInitialized; //default to false
     private final static KeyContexts.WalletCypher walletCypher = KeyContexts.WalletCypher.Ed25519BC;
     private final Object constructorLock = new Object();
-    private final Object getKeyPairAtIndexLock = new Object();
-    private final Object getPublicKeyAtIndexHexLock = new Object();
-    private final Object getPublicKeyAtIndexByteLock = new Object();
+    /**
+     * DR-003 — per-index monitors replacing the former single instance-wide
+     * lock. Distinct indices derive concurrently; a given index derives exactly
+     * once (inner re-check). The computeIfAbsent mapping function allocates only
+     * a cheap Object, so it never holds the bin lock during heavy keygen.
+     */
+    private final ConcurrentMap<Integer, Object> getKeyPairAtIndexLocks = new ConcurrentHashMap<>();
 
     /**
      * 0.10.0 — appRoot for filesystem isolation. Captured at construction
@@ -416,18 +422,26 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
      */
     @Override
     public AsymmetricCipherKeyPair getKeyPairAtIndex(int index) throws InvalidWalletIndexException {
-        if (!signKeys.containsKey(index)) {
-            synchronized (getKeyPairAtIndexLock) {
-                //call key creation
-                Ed25519KeyPairGenerator keyPairGenerator = new Ed25519KeyPairGenerator();
-                if (index < 0 || index >= Integer.MAX_VALUE) {
-                    throw new InvalidWalletIndexException("index outside wallet range");
-                }
-                keyPairGenerator.init(new Ed25519KeyGenerationParameters(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1)));
-                signKeys.put(index, keyPairGenerator.generateKeyPair());
-            }
+        if (index < 0 || index >= Integer.MAX_VALUE) {
+            throw new InvalidWalletIndexException("index outside wallet range");
         }
-        return signKeys.get(index);
+        AsymmetricCipherKeyPair cached = signKeys.get(index);
+        if (cached != null) {
+            return cached;
+        }
+        // DR-003: per-index monitor — distinct indices run in parallel; same index runs once.
+        synchronized (getKeyPairAtIndexLocks.computeIfAbsent(index, k -> new Object())) {
+            cached = signKeys.get(index); // inner re-check under the per-index lock
+            if (cached != null) {
+                return cached;
+            }
+            //call key creation
+            Ed25519KeyPairGenerator keyPairGenerator = new Ed25519KeyPairGenerator();
+            keyPairGenerator.init(new Ed25519KeyGenerationParameters(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, index + 1)));
+            AsymmetricCipherKeyPair keyPair = keyPairGenerator.generateKeyPair();
+            signKeys.put(index, keyPair);
+            return keyPair;
+        }
     }
 
     /**
@@ -445,25 +459,26 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
      */
     @Override
     public String getPublicKeyAtIndexURL64(int index) throws InvalidWalletIndexException, PublicKeySerializzationException {
-        if (!hexPublicKeys.containsKey(index)) {
-            synchronized (getPublicKeyAtIndexHexLock) {
-                try {
-                    AsymmetricCipherKeyPair keyPairAtIndex = getKeyPairAtIndex(index);
-                    //UrlBase64 b64e = new UrlBase64();
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
-                    Ed25519PublicKeyParameters publicKey = (Ed25519PublicKeyParameters) aPublic;
-                    UrlBase64.encode(publicKey.getEncoded(), baos);
-                    hexPublicKeys.put(index, baos.toString());
-                    baos.close();
-                } catch (IOException ex) {
-                    log.error("Wallet can not serialize public key", ex);
-                    throw new PublicKeySerializzationException(ex);
-                }
-
-            }
+        String cached = hexPublicKeys.get(index);
+        if (cached != null) {
+            return cached;
         }
-        return hexPublicKeys.get(index);
+        // DR-003: serialization is cheap + idempotent — lock-free; a rare duplicate is harmless.
+        try {
+            AsymmetricCipherKeyPair keyPairAtIndex = getKeyPairAtIndex(index);
+            //UrlBase64 b64e = new UrlBase64();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
+            Ed25519PublicKeyParameters publicKey = (Ed25519PublicKeyParameters) aPublic;
+            UrlBase64.encode(publicKey.getEncoded(), baos);
+            String encoded = baos.toString();
+            baos.close();
+            String previous = hexPublicKeys.putIfAbsent(index, encoded);
+            return previous != null ? previous : encoded;
+        } catch (IOException ex) {
+            log.error("Wallet can not serialize public key", ex);
+            throw new PublicKeySerializzationException(ex);
+        }
     }
 
     /**
@@ -480,25 +495,26 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
      */
     @Override
     public byte[] getPublicKeyAtIndexByte(int index) throws InvalidWalletIndexException, PublicKeySerializzationException {
-        if (!bytePublicKeys.containsKey(index)) {
-            synchronized (getPublicKeyAtIndexByteLock) {
-                try {
-                    AsymmetricCipherKeyPair keyPairAtIndex = getKeyPairAtIndex(index);
-                    //UrlBase64 b64e = new UrlBase64();
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
-                    Ed25519PublicKeyParameters publicKey = (Ed25519PublicKeyParameters) aPublic;
-                    //UrlBase64.encode(publicKey.getEncoded(), baos);
-                    bytePublicKeys.put(index, publicKey.getEncoded());
-                    baos.close();
-                } catch (IOException ex) {
-                    log.error("Wallet can not serialize public key", ex);
-                    throw new PublicKeySerializzationException(ex);
-                }
-
-            }
+        byte[] cached = bytePublicKeys.get(index);
+        if (cached != null) {
+            return cached;
         }
-        return bytePublicKeys.get(index);
+        // DR-003: serialization is cheap + idempotent — lock-free; a rare duplicate is harmless.
+        try {
+            AsymmetricCipherKeyPair keyPairAtIndex = getKeyPairAtIndex(index);
+            //UrlBase64 b64e = new UrlBase64();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
+            Ed25519PublicKeyParameters publicKey = (Ed25519PublicKeyParameters) aPublic;
+            //UrlBase64.encode(publicKey.getEncoded(), baos);
+            byte[] encoded = publicKey.getEncoded();
+            baos.close();
+            byte[] previous = bytePublicKeys.putIfAbsent(index, encoded);
+            return previous != null ? previous : encoded;
+        } catch (IOException ex) {
+            log.error("Wallet can not serialize public key", ex);
+            throw new PublicKeySerializzationException(ex);
+        }
     }
 
     /**
