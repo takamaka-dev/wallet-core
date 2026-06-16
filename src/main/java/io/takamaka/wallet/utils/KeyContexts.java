@@ -17,11 +17,47 @@ public final class KeyContexts {
     public static final String WALLET_JSON_AES = "AES";
     public static final String WALLET_JSON_AES_CBC_CS3 = "AES/CBC/CS3Padding";
     public static final String WALLET_JSON_BC = "BC";
+
+    /**
+     * DR-009 — versioned {@code .wallet} keystore.
+     *
+     * <p>The {@code EncKeyBean.algorithm} field is the version discriminator
+     * (no parallel version int):
+     * <ul>
+     *   <li>absent / {@link #WALLET_JSON_AES} ⇒ <b>legacy v1</b> — AES/CBC,
+     *       fixed salt {@code "TakamakaWallet"}, 1 PBKDF2 iteration. Read path is
+     *       <b>frozen</b>; existing wallets must always open.</li>
+     *   <li>{@link #WALLET_JSON_AES_V2} ⇒ <b>v2</b> — AES-GCM, random per-file
+     *       salt, configurable + authenticated PBKDF2 iterations. The KDF params
+     *       live in the cleartext header and are bound as GCM AAD, so they cannot
+     *       be tampered/downgraded.</li>
+     * </ul>
+     *
+     * <p>v2-WRITE is a capability ({@code WalletHelper.writeKeyFileV2}); the
+     * default write path keeps producing v1 until a release decision flips it.
+     */
+    public static final String WALLET_JSON_AES_V2 = "AES_GCM_V2";
+    /** v2 KDF — matches {@link FixedParameters#HASH_PWH_ALGORITHM}. */
+    public static final String WALLET_V2_KDF = "PBKDF2WithHmacSHA512";
+    /** v2 default PBKDF2 iteration count (password-derived key — vault regime, DR-002 ≈ 10⁶). */
+    public static final int WALLET_V2_DEFAULT_ITERATIONS = 1_000_000;
+    /** v2 minimum-security floor: a v2 header below this is rejected on read. */
+    public static final int WALLET_V2_MIN_ITERATIONS = 100_000;
+    /** v2 derived-key size in bits (AES-256). */
+    public static final int WALLET_V2_KEY_BITS = 256;
+    /** v2 random per-file salt length in bytes. */
+    public static final int WALLET_V2_SALT_BYTES = 16;
+    /** v2 AES-GCM nonce/IV length in bytes. */
+    public static final int WALLET_V2_GCM_IV_BYTES = 12;
+    /** v2 AES-GCM authentication tag length in bits. */
+    public static final int WALLET_V2_GCM_TAG_BITS = 128;
     //                                             wallet key chain
     /**
      * context string (fixed salt part) for pbkf function
      */
     public static final String WALLET_KEY_CHAIN = "__WKCH__";
+    public static final String RSA_PK_ENCRYPTION = "__RSA_PK_ENCRYPTION__";
+    public static final String DETERMINISTIC_KEY_AGREEMENT = "__DKA__";
     /**
      * context string (fixed salt part) for pbkf function
      */
@@ -161,7 +197,20 @@ public final class KeyContexts {
         /**
          * bouncy castle, provable secure, I, Round 2
          */
-        BCQTESLA_PS_1_R2
+        BCQTESLA_PS_1_R2,
+        Curve25519BC,
+        /**
+         * RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING, 4096 bit encryption.
+         * Uses SHA-256 for OAEP hash and SHA-1 for MGF1 (JCE default).
+         * @deprecated Use RSA_4096_ECB_OAEP_SHA256 for cross-platform compatibility.
+         */
+        @Deprecated
+        RSA_4096_ECB_OAEP,
+        /**
+         * RSA/ECB/OAEP with SHA-256 for both hash and MGF1, 4096 bit encryption.
+         * Cross-platform compatible with PointyCastle (Dart/Flutter).
+         */
+        RSA_4096_ECB_OAEP_SHA256
     }
 
     /**
@@ -851,5 +900,19 @@ public final class KeyContexts {
         sith,
         UNDEFINED
     }
+    
+    /**
+     * RSA/ECB/OAEP with SHA-256 for OAEP hash and SHA-1 for MGF1 (JCE default).
+     * @deprecated Use BC_RSA_4096ENC_SHA256_FORMAT for cross-platform compatibility.
+     */
+    @Deprecated
+    public static final String BC_RSA_4096ENC_FORMAT = "RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING";
+
+    /**
+     * RSA/ECB/OAEP with SHA-256 for both hash and MGF1.
+     * Cross-platform compatible with PointyCastle (Dart/Flutter).
+     * Requires OAEPParameterSpec to explicitly set MGF1 to SHA-256.
+     */
+    public static final String BC_RSA_4096ENC_SHA256_FORMAT = "RSA/ECB/OAEPPadding";
 
 }

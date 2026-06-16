@@ -36,11 +36,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.text.RandomStringGenerator;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 
@@ -59,10 +62,17 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
     private boolean isInitialized; //default to false
     private final static KeyContexts.WalletCypher walletCypher = KeyContexts.WalletCypher.BCQTESLA_PS_1_R2;
     private final Object constructorLock = new Object();
-    private final Object getKeyPairAtIndexLock = new Object();
-    private final Object getPublicKeyAtIndexHexLock = new Object();
-    private final Object getPublicKeyAtIndexByteLock = new Object();
-    
+    /**
+     * DR-003 — per-index monitors replacing the former single instance-wide
+     * lock. Distinct indices derive concurrently; a given index derives exactly
+     * once (inner re-check). The computeIfAbsent mapping function allocates only
+     * a cheap Object, so it never holds the bin lock during heavy keygen.
+     */
+    private final ConcurrentMap<Integer, Object> getKeyPairAtIndexLocks = new ConcurrentHashMap<>();
+
+    /** 0.10.0 — appRoot for filesystem isolation. @since 0.10.0 */
+    private Path appRoot;
+
     /**
      * Method to get the cypher used in the current wallet.
      *
@@ -72,6 +82,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
     public KeyContexts.WalletCypher getWalletCypher() {
         return walletCypher;
     }
+
     /**
      * Constructor for InstanceWalletKeyStoreBCQTESLAPSSC1Round2.
      *
@@ -82,50 +93,26 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      * @param walletName the name of the wallet file
      * @throws UnlockWalletException if there is an error with unlocking the
      * wallet
-     * @throws WalletException 
+     * @throws WalletException
      */
     public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName) throws UnlockWalletException, WalletException {
+        this(walletName, (Path) null);
+    }
+
+    /** 0.10.0 — appRoot-aware overload. @since 0.10.0 */
+    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, Path appRoot) throws UnlockWalletException, WalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
                     currentWalletName = walletName + DefaultInitParameters.WALLET_EXTENSION;
+                    this.appRoot = appRoot;
                     signKeys = Collections.synchronizedMap(new HashMap<Integer, AsymmetricCipherKeyPair>());
                     hexPublicKeys = Collections.synchronizedMap(new HashMap<Integer, String>());
                     bytePublicKeys = Collections.synchronizedMap(new HashMap<Integer, byte[]>());
-                    initWallet("Password");
+                    initWallet("Password", appRoot);
                 } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error name", ex);
                     throw new UnlockWalletException("instance error name", ex);
-                }
-                isInitialized = true;
-            }
-        }
-    }
-    
-    /**
-     * Constructor for InstanceWalletKeyStoreBCQTESLAPSSC1Round2.
-     *
-     * It initializes the collections for key pairs and public keys, and calls
-     * initWallet method to initialize or load an existing wallet
-     *
-     * @param walletName the name of the wallet file
-     * @param password the password used to encrypt the keyfile
-     * @throws UnlockWalletException if there is an error with unlocking the
-     * wallet
-     * @throws WalletException 
-     */
-    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, String password) throws UnlockWalletException, WalletException {
-        synchronized (constructorLock) {
-            if (!isInitialized) {
-                try {
-                    currentWalletName = walletName + DefaultInitParameters.WALLET_EXTENSION;
-                    signKeys = Collections.synchronizedMap(new HashMap<Integer, AsymmetricCipherKeyPair>());
-                    hexPublicKeys = Collections.synchronizedMap(new HashMap<Integer, String>());
-                    bytePublicKeys = Collections.synchronizedMap(new HashMap<Integer, byte[]>());
-                    initWallet(password);
-                } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
-                    log.error("instance error name password", ex);
-                    throw new UnlockWalletException("instance error name password", ex);
                 }
                 isInitialized = true;
             }
@@ -139,21 +126,56 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      * initWallet method to initialize or load an existing wallet
      *
      * @param walletName the name of the wallet file
-     * @param nCharSeed the number of characters for the seed
+     * @param password the password used to encrypt the keyfile
      * @throws UnlockWalletException if there is an error with unlocking the
      * wallet
-     * @throws WalletEmptySeedException if the seed is empty
-     * @throws WalletBurnedException if the seed is "burned"
+     * @throws WalletException
      */
-    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, int nCharSeed) throws UnlockWalletException, WalletBurnedException, WalletEmptySeedException {
+    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, String password) throws UnlockWalletException, WalletException {
+        this(walletName, password, (Path) null);
+    }
+
+    /** 0.10.0 — appRoot-aware overload (with password). @since 0.10.0 */
+    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, String password, Path appRoot) throws UnlockWalletException, WalletException {
         synchronized (constructorLock) {
             if (!isInitialized) {
                 try {
                     currentWalletName = walletName + DefaultInitParameters.WALLET_EXTENSION;
+                    this.appRoot = appRoot;
                     signKeys = Collections.synchronizedMap(new HashMap<Integer, AsymmetricCipherKeyPair>());
                     hexPublicKeys = Collections.synchronizedMap(new HashMap<Integer, String>());
                     bytePublicKeys = Collections.synchronizedMap(new HashMap<Integer, byte[]>());
-                    initWallet(nCharSeed);
+                    initWallet(password, appRoot);
+                } catch (IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
+                    log.error("instance error name password", ex);
+                    throw new UnlockWalletException("instance error name password", ex);
+                }
+                isInitialized = true;
+            }
+        }
+    }
+
+    /**
+     * 0.10.0 — BREAKING change. Replaces the prior (walletName, int nCharSeed)
+     * ephemeral ctor with epoch-aware signature. See ED25519 sibling for
+     * full migration story.
+     * @since 0.10.0
+     */
+    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, int seedLength, int epoch) throws UnlockWalletException, WalletBurnedException, WalletEmptySeedException {
+        this(walletName, seedLength, epoch, null);
+    }
+
+    /** 0.10.0 — BREAKING ephemeral ctor with appRoot. @since 0.10.0 */
+    public InstanceWalletKeyStoreBCQTESLAPSSC1Round2(String walletName, int seedLength, int epoch, Path appRoot) throws UnlockWalletException, WalletBurnedException, WalletEmptySeedException {
+        synchronized (constructorLock) {
+            if (!isInitialized) {
+                try {
+                    currentWalletName = walletName + DefaultInitParameters.WALLET_EXTENSION;
+                    this.appRoot = appRoot;
+                    signKeys = Collections.synchronizedMap(new HashMap<Integer, AsymmetricCipherKeyPair>());
+                    hexPublicKeys = Collections.synchronizedMap(new HashMap<Integer, String>());
+                    bytePublicKeys = Collections.synchronizedMap(new HashMap<Integer, byte[]>());
+                    initWalletEphemeral(seedLength, epoch, appRoot);
                 } catch (WalletException | IOException | NoSuchAlgorithmException | HashEncodeException | InvalidKeySpecException | HashAlgorithmNotFoundException | HashProviderNotFoundException ex) {
                     log.error("instance error seed", ex);
                     throw new UnlockWalletException("instance error seed", ex);
@@ -162,7 +184,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
             }
         }
     }
-    
+
     /**
      * Initializes a new wallet or loads an existing one
      *
@@ -187,25 +209,42 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      * @throws WalletBurnedException if the seed is "burned"
      * @throws WalletEmptySeed
      */
-    private void initWallet(int nCharSeed) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletBurnedException, WalletEmptySeedException, WalletException {
-        if (!FileHelper.walletDirExists()) {
-            FileHelper.createDir(FileHelper.getEphemeralWalletDirectoryPath());
+    /**
+     * 0.10.0 — replaces the prior {@code initWallet(int nCharSeed)} body
+     * with epoch- and appRoot-aware ephemeral routing.
+     * @since 0.10.0
+     */
+    private void initWalletEphemeral(int seedLength, int epoch, Path appRoot) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletBurnedException, WalletEmptySeedException, WalletException {
+        // 0.10.0 — pre-create entire path chain.
+        Path appDir = FileHelper.getDefaultApplicationDirectoryPath(appRoot);
+        if (!appDir.toFile().isDirectory()) {
+            FileHelper.createDir(appDir);
         }
-        if (!FileHelper.fileExists(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName))) {
-            seed = RandomStringUtils.randomAlphabetic(nCharSeed);
-            FileHelper.writeStringToFile(FileHelper.getEphemeralWalletDirectoryPath(), currentWalletName, seed, false);
+        Path flatEphDir = FileHelper.getEphemeralWalletDirectoryPath(appRoot);
+        if (!flatEphDir.toFile().isDirectory()) {
+            FileHelper.createDir(flatEphDir);
         }
-        Path currentWalletPath = Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName);
-
+        Path ephDir = FileHelper.getEphemeralWalletDirectoryPath(epoch, appRoot);
+        if (!ephDir.toFile().isDirectory()) {
+            FileHelper.createDir(ephDir);
+        }
+        Path currentWalletPath = Paths.get(ephDir.toString(), currentWalletName);
+        if (!FileHelper.fileExists(currentWalletPath)) {
+            RandomStringGenerator generator = new RandomStringGenerator.Builder()
+                    .withinRange('0', 'z')
+                    .filteredBy(Character::isLetterOrDigit)
+                    .get();
+            seed = generator.generate(seedLength);
+            FileHelper.writeStringToFile(ephDir, currentWalletName, seed, false);
+        }
         if (FileHelper.fileExists(currentWalletPath)) {
-            seed = FileHelper.readStringFromFile(Paths.get(FileHelper.getEphemeralWalletDirectoryPath().toString(), currentWalletName));
+            seed = FileHelper.readStringFromFile(currentWalletPath);
             if ("burned".equals(seed)) {
                 throw new WalletBurnedException("WALLET IS BURNED");
             }
             if (TkmTextUtils.isNullOrBlank(seed)) {
                 throw new WalletEmptySeedException("WALLET SEED IS EMPTY");
             }
-
         }
     }
 
@@ -235,10 +274,20 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      * available
      */
     private void initWallet(String password) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletException {
-        if (!FileHelper.walletDirExists()) {
-            FileHelper.createDir(FileHelper.getDefaultWalletDirectoryPath());
+        initWallet(password, null);
+    }
+
+    /** 0.10.0 — appRoot-aware variant. @since 0.10.0 */
+    private void initWallet(String password, Path appRoot) throws IOException, NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException, UnlockWalletException, WalletException {
+        // 0.10.0 — ensure full path chain exists for fresh appRoot tempdirs.
+        Path appDir = FileHelper.getDefaultApplicationDirectoryPath(appRoot);
+        if (!appDir.toFile().isDirectory()) {
+            FileHelper.createDir(appDir);
         }
-        if (!FileHelper.fileExists(Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), currentWalletName))) {
+        if (!FileHelper.walletDirExists(appRoot)) {
+            FileHelper.createDir(FileHelper.getDefaultWalletDirectoryPath(appRoot));
+        }
+        if (!FileHelper.fileExists(Paths.get(FileHelper.getDefaultWalletDirectoryPath(appRoot).toString(), currentWalletName))) {
 
             List<String> words = SeedGenerator.generateWords();
             seed = SeedGenerator.generateSeedPWH(words);
@@ -250,13 +299,14 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
 
             KeyBean kb = new KeyBean("POWSEED", KeyContexts.WalletCypher.BCQTESLA_PS_1_R2, seed, concat);
             try {
-                WalletHelper.writeKeyFile(FileHelper.getDefaultWalletDirectoryPath(), currentWalletName, kb, password);
-            } catch (NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException ex) {
+                WalletHelper.writeKeyFile(FileHelper.getDefaultWalletDirectoryPath(appRoot), currentWalletName, kb, password);
+            } catch (NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | io.takamaka.wallet.exceptions.KeystoreFileExistsException ex) {
+                // 0.10.0 — KeystoreFileExistsException added; pre-check shields.
                 log.error("instance error password", ex);
                 throw new WalletException("instance error password", ex);
             }
         }
-        Path currentWalletPath = Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), currentWalletName);
+        Path currentWalletPath = Paths.get(FileHelper.getDefaultWalletDirectoryPath(appRoot).toString(), currentWalletName);
 
         if (FileHelper.fileExists(currentWalletPath)) {
             try {
@@ -284,16 +334,23 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
         if (Security.getProvider("BCPQC") == null) {
             Security.addProvider(new BouncyCastlePQCProvider());
         }
-        if (!signKeys.containsKey(i)) {
-            synchronized (getKeyPairAtIndexLock) {
-                if (i < 0 || i >= Integer.MAX_VALUE) {
-                    throw new InvalidWalletIndexException("index outside wallet range");
-                }
-
-                signKeys.put(i, QTR2KeyPairGenerator.getKeyPair(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, i + 1)));
-            }
+        if (i < 0 || i >= Integer.MAX_VALUE) {
+            throw new InvalidWalletIndexException("index outside wallet range");
         }
-        return signKeys.get(i);
+        AsymmetricCipherKeyPair cached = signKeys.get(i);
+        if (cached != null) {
+            return cached;
+        }
+        // DR-003: per-index monitor — distinct indices run in parallel; same index runs once.
+        synchronized (getKeyPairAtIndexLocks.computeIfAbsent(i, k -> new Object())) {
+            cached = signKeys.get(i); // inner re-check under the per-index lock
+            if (cached != null) {
+                return cached;
+            }
+            AsymmetricCipherKeyPair keyPair = QTR2KeyPairGenerator.getKeyPair(new SeededRandom(seed, KeyContexts.WALLET_KEY_CHAIN, i + 1));
+            signKeys.put(i, keyPair);
+            return keyPair;
+        }
     }
 
     /**
@@ -311,22 +368,21 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      */
     @Override
     public String getPublicKeyAtIndexURL64(int i) throws InvalidWalletIndexException, PublicKeySerializzationException {
-        if (!hexPublicKeys.containsKey(i)) {
-            synchronized (getPublicKeyAtIndexHexLock) {
-                try {
-
-                    hexPublicKeys.put(i, QTR2KeyPairGenerator.getStringPublicKey(getKeyPairAtIndex(i)));
-                } catch (IOException ex) {
-                    log.error("Wallet can not serialize public key", ex);
-                    throw new PublicKeySerializzationException(ex);
-                }
-
-            }
+        String cached = hexPublicKeys.get(i);
+        if (cached != null) {
+            return cached;
         }
-        return hexPublicKeys.get(i);
+        // DR-003: serialization is cheap + idempotent — lock-free; a rare duplicate is harmless.
+        try {
+            String encoded = QTR2KeyPairGenerator.getStringPublicKey(getKeyPairAtIndex(i));
+            String previous = hexPublicKeys.putIfAbsent(i, encoded);
+            return previous != null ? previous : encoded;
+        } catch (IOException ex) {
+            log.error("Wallet can not serialize public key", ex);
+            throw new PublicKeySerializzationException(ex);
+        }
     }
 
-    
     /**
      * Retrieve the public key at a specific index in the wallet in byte format.
      *
@@ -341,19 +397,21 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
      */
     @Override
     public byte[] getPublicKeyAtIndexByte(int i) throws InvalidWalletIndexException, PublicKeySerializzationException {
-        if (!bytePublicKeys.containsKey(i)) {
-            synchronized (getPublicKeyAtIndexByteLock) {
-                try {
-                    bytePublicKeys.put(i, QTR2KeyPairGenerator.getBytePublicKey(getKeyPairAtIndex(i)));
-                } catch (IOException ex) {
-                    log.error("Wallet can not serialize public key", ex);
-                    throw new PublicKeySerializzationException(ex);
-                }
-
-            }
+        byte[] cached = bytePublicKeys.get(i);
+        if (cached != null) {
+            return cached;
         }
-        return bytePublicKeys.get(i);
+        // DR-003: serialization is cheap + idempotent — lock-free; a rare duplicate is harmless.
+        try {
+            byte[] encoded = QTR2KeyPairGenerator.getBytePublicKey(getKeyPairAtIndex(i));
+            byte[] previous = bytePublicKeys.putIfAbsent(i, encoded);
+            return previous != null ? previous : encoded;
+        } catch (IOException ex) {
+            log.error("Wallet can not serialize public key", ex);
+            throw new PublicKeySerializzationException(ex);
+        }
     }
+
     /**
      * Method to get the identifier of the current wallet on system.
      *
@@ -363,7 +421,7 @@ public class InstanceWalletKeyStoreBCQTESLAPSSC1Round2 implements InstanceWallet
     public String getCurrentWalletID() {
         return currentWalletName + walletCypher.name();
     }
-    
+
     /**
      *
      * compare two wallet using their file system name

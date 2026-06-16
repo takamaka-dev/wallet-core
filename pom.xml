@@ -11,8 +11,27 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.takamaka.wallet</groupId>
     <artifactId>takamaka-core-wallet</artifactId>
-    <version>0.9.2.5-SNAPSHOT</version>
+    <version>0.10.0-SNAPSHOT</version>
     <packaging>jar</packaging>
+    <!--
+        0.10.0 — minor bump signaling:
+        - additive: ~45 FileHelper Path-returning getters now have
+          (Path appRoot) overloads + 9 keystore ctor overloads
+        - additive: epoch-routed ephemeral path
+          getEphemeralWalletDirectoryPath(int epoch, Path appRoot)
+        - BREAKING: ephemeral wallet ctor (walletName, int nCharSeed)
+          replaced with (walletName, int seedLength, int epoch).
+          Callers MUST update with explicit epoch parameter (use -1
+          for legacy flat-dir routing).
+        - audit-driven: 7 silent-failure patterns promoted to hard
+          exceptions (KeystoreFileExistsException,
+          PublicKeyFileExistsException, IOException on rename/delete
+          failure, IllegalArgumentException on getFileNameList null,
+          rename overwrite=false now honored).
+        See nodeflux/docs/TASK-wallet-core-app-root-overload.md for
+        the full scope and migration recipe.
+    -->
+
     <licenses>
         <license>
             <name>The Apache License, Version 2.0</name>
@@ -65,7 +84,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.10.1</version>
+                <version>3.13.0</version>
                 <configuration>
                     <showDeprecation>true</showDeprecation>
                     <archive>
@@ -132,7 +151,15 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                
+                <version>3.2.5</version>
+                <!--
+                    Bumped 2026-05-07 from default 2.12.4 → 3.2.5 for native
+                    JUnit 5 (Jupiter) test discovery. Required for the
+                    BaselineRegressionVectorGenerator and existing @Test classes
+                    (CrossPlatformTestVectorGeneratorV2, WalletTest, etc.) that
+                    were previously runnable only via IDE. Build-tool change;
+                    does not affect artifact bytecode.
+                -->
             </plugin>
             
         </plugins>
@@ -158,72 +185,72 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>2.14.1</version>
+            <version>2.18.0</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>2.14.1</version>
+            <version>2.18.0</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.12.0</version>
+            <version>3.17.0</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.24</version>
+            <version>1.18.38</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>2.0.6</version>
+            <version>2.0.16</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
-            <version>2.0.6</version>
+            <version>2.0.16</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.11.0</version>
+            <version>2.17.0</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.15</version>
+            <version>1.17.1</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.14.1</version>
+            <version>2.18.0</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>5.6.0</version>
+            <version>5.11.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
-            <version>5.6.0</version>
+            <version>5.11.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.6.0</version>
+            <version>5.11.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -231,6 +258,12 @@
             <artifactId>junit</artifactId>
             <version>4.13.2</version>
             <scope>test</scope>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>1.12.0</version>
             <type>jar</type>
         </dependency>
     </dependencies>

@@ -7,23 +7,44 @@ package io.takamaka.wallet;
 import io.takamaka.wallet.beans.InternalTransactionBean;
 import io.takamaka.wallet.beans.TransactionBean;
 import io.takamaka.wallet.beans.TransactionBox;
+import io.takamaka.wallet.exceptions.InvalidWalletIndexException;
+import io.takamaka.wallet.exceptions.KeyDecodeException;
+import io.takamaka.wallet.exceptions.PublicKeySerializzationException;
 import io.takamaka.wallet.exceptions.TransactionNotYetImplementedException;
+import io.takamaka.wallet.exceptions.UnlockWalletException;
+import io.takamaka.wallet.exceptions.WalletBurnedException;
+import io.takamaka.wallet.exceptions.WalletEmptySeedException;
 import io.takamaka.wallet.exceptions.WalletException;
 import io.takamaka.wallet.utils.BuilderITB;
 import io.takamaka.wallet.utils.KeyContexts;
+import io.takamaka.wallet.utils.SeededRandom;
+import io.takamaka.wallet.utils.TkmSignUtils;
 import io.takamaka.wallet.utils.TkmTextUtils;
 import io.takamaka.wallet.utils.TkmWallet;
 import io.takamaka.wallet.utils.TransactionFeeCalculator;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.log4j.BasicConfigurator;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.agreement.X25519Agreement;
+import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Test;
 import static org.junit.Assert.*;
 
 /**
@@ -41,6 +62,9 @@ public class WalletTest {
 
     static ConcurrentSkipListMap<KeyContexts.WalletCypher, InstanceWalletKeystoreInterface> walletsFrom;
     static ConcurrentSkipListMap<KeyContexts.WalletCypher, InstanceWalletKeystoreInterface> walletsTo;
+    static ConcurrentSkipListMap<Integer, InstanceWalletKeystoreInterface> walletsKeyExchangeToDHX;
+    static ConcurrentSkipListMap<Integer, InstanceWalletKeystoreInterface> walletsKeyExchangeFromDHX;
+
     static KeyContexts.TransactionType[] trxTypes = new KeyContexts.TransactionType[]{
         KeyContexts.TransactionType.PAY,
         KeyContexts.TransactionType.DECLARATION,
@@ -61,16 +85,20 @@ public class WalletTest {
         BasicConfigurator.configure();
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws WalletException {
         walletsFrom = new ConcurrentSkipListMap<>();
+        walletsKeyExchangeFromDHX = new ConcurrentSkipListMap<>();
+        walletsKeyExchangeToDHX = new ConcurrentSkipListMap<>();
         walletsFrom.put(KeyContexts.WalletCypher.Ed25519BC, new InstanceWalletKeyStoreBCED25519("Ed25519BC" + "_test_wallet_from"));
         walletsFrom.put(KeyContexts.WalletCypher.BCQTESLA_PS_1, new InstanceWalletKeyStoreBCQTESLAPSSC1Round1("BCQTESLA_PS_1" + "_test_wallet_from"));
         walletsFrom.put(KeyContexts.WalletCypher.BCQTESLA_PS_1_R2, new InstanceWalletKeyStoreBCQTESLAPSSC1Round2("BCQTESLA_PS_1_R2" + "_test_wallet_from"));
+        walletsKeyExchangeFromDHX.put(0, new InstanceWalletKeyStoreBCCurve25519("BCCURVE25519" + "_test_wallet_from"));
         walletsTo = new ConcurrentSkipListMap<>();
         walletsTo.put(KeyContexts.WalletCypher.Ed25519BC, new InstanceWalletKeyStoreBCED25519("Ed25519BC" + "_test_wallet_to"));
         walletsTo.put(KeyContexts.WalletCypher.BCQTESLA_PS_1, new InstanceWalletKeyStoreBCQTESLAPSSC1Round1("BCQTESLA_PS_1" + "_test_wallet_to"));
         walletsTo.put(KeyContexts.WalletCypher.BCQTESLA_PS_1_R2, new InstanceWalletKeyStoreBCQTESLAPSSC1Round2("BCQTESLA_PS_1_R2" + "_test_wallet_to"));
+        walletsKeyExchangeToDHX.put(0, new InstanceWalletKeyStoreBCCurve25519("BCCURVE25519" + "_test_wallet_to"));
         messages = new String[][]{
             new String[]{"NULL", null},
             new String[]{"GENERIC", "the quick brown fox jumps over the lazy dog 1234567890"},
@@ -84,15 +112,99 @@ public class WalletTest {
         };
     }
 
-    @AfterClass
+    /**
+     * reference example
+     * https://github.com/firatkucuk/diffie-hellman-helloworld/blob/main/src/main/java/com/github/firatkucuk/diffie_hellman_helloworld/Main.java
+     * https://gist.github.com/wuyongzheng/0e2ed6d8a075153efcd3
+     * https://www.demo2s.com/java/java-bouncycastle-dhuparameterspec-tutorial-with-examples.html
+     * https://www.demo2s.com/java/java-org-bouncycastle-crypto-agreement-x25519agreement.html
+     * https://www.demo2s.com/java/java-bouncycastle-x25519agreement-calculateagreement-cipherparameters.html
+     *
+     * @throws WalletException
+     */
+    @Test
+    public void testSecretExchange() throws WalletException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, KeyDecodeException {
+        for (Integer aliceId : walletsKeyExchangeFromDHX.keySet()) {
+            for (Integer bobId : walletsKeyExchangeToDHX.keySet()) {
+                InstanceWalletKeystoreInterface aliceWallet = walletsKeyExchangeFromDHX.get(aliceId);
+                InstanceWalletKeystoreInterface bobWallet = walletsKeyExchangeToDHX.get(bobId);
+
+                //String keyFromAliceToBob = 
+                // 1. ------------------------------------------------------------------
+                // This is Alice and Bob
+                // Alice and Bob want to chat securely. But how?
+                //
+                //    O                                        O
+                //   /|\                                      /|\
+                //   / \                                      / \
+                //
+                //  ALICE                                     BOB
+                //  _ PUBLIC KEY                              _ PUBLIC KEY
+                //  _ PRIVATE KEY                             _ PRIVATE KEY
+                // 2. ------------------------------------------------------------------
+                // Alice and Bob generate public and private keys.
+                final String alicePK = aliceWallet.getPublicKeyAtIndexURL64(aliceId);
+                log.info("alice PK " + alicePK);
+                final String bobPK = bobWallet.getPublicKeyAtIndexURL64(bobId);
+                log.info("bob PK " + bobPK);
+                // 3. ------------------------------------------------------------------
+                // Alice and Bob exchange public keys with each other.
+                // 4. ------------------------------------------------------------------
+                // Alice generates common secret key via using her private key and Bob's public key.
+                // Bob generates common secret key via using his private key and Alice's public key.
+                // Both secret keys are equal without TRANSFERRING. This is the magic of Diffie-Helman algorithm.
+                X25519Agreement agreeA = new X25519Agreement();
+                agreeA.init(aliceWallet.getKeyPairAtIndex(0).getPrivate());
+                byte[] secretA = new byte[agreeA.getAgreementSize()];
+                agreeA.calculateAgreement(bobWallet.getKeyPairAtIndex(0).getPublic(), secretA, 0);
+
+                //X25519Agreement agreeB = new X25519Agreement();
+                //agreeB.init(bobWallet.getKeyPairAtIndex(0).getPrivate());
+                //byte[] secretB = new byte[agreeB.getAgreementSize()];
+                //agreeB.calculateAgreement(aliceWallet.getKeyPairAtIndex(0).getPublic(), secretB, 0);
+                //byte[] generatedAliceSecret = TkmKeyExchangeDHBC.generateKeySecret(bobWallet.getPublicKeyAtIndexByte(0), aliceWallet, 0);
+                log.info("alice secret " + Arrays.toString(secretA));
+                byte[] calculateAgreementBob = TkmCypherProviderBCX25519.calculateAgreement(
+                        bobWallet.getKeyPairAtIndex(0).getPrivate(),
+                        aliceWallet.getKeyPairAtIndex(0).getPublic());
+                log.info("bob   secret " + Arrays.toString(calculateAgreementBob));
+                final String alicePublicKeyAtIndexURL64 = aliceWallet.getPublicKeyAtIndexURL64(0);
+                log.info("alice public byte " + alicePublicKeyAtIndexURL64);
+                final String bobPublicKeyAtIndexURL64 = bobWallet.getPublicKeyAtIndexURL64(0);
+                log.info("bob(b) public byte " + bobPublicKeyAtIndexURL64);
+                byte[] calculateAgreementBobS = TkmCypherProviderBCX25519.calculateAgreement(
+                        bobWallet.getKeyPairAtIndex(0).getPrivate(),
+                        aliceWallet.getPublicKeyAtIndexURL64(0));
+                log.info("bob(b) secret " + Arrays.toString(calculateAgreementBobS));
+                assertArrayEquals(calculateAgreementBob, calculateAgreementBobS);
+                assertArrayEquals(calculateAgreementBob, secretA);
+                assertArrayEquals(secretA, calculateAgreementBobS);
+
+                //X25519PublicKeyParameters alicePublicKeyParamX25519Decoded = TkmSignUtils.getPublicKeyParamX25519(alicePublicKeyAtIndexURL64);
+                //X25519PublicKeyParameters bobPublicKeyParamX25519Decoded = TkmSignUtils.getPublicKeyParamX25519(bobPublicKeyAtIndexURL64);
+                AsymmetricCipherKeyPair keyZero = InstanceWalletKeyStoreBCCurve25519.getOneTimeRandomKeyPair();
+                AsymmetricCipherKeyPair keyOne = InstanceWalletKeyStoreBCCurve25519.getOneTimeRandomKeyPair();
+
+                byte[] calculateAgreementZeroOne = TkmCypherProviderBCX25519.calculateAgreement(keyZero.getPrivate(), keyOne.getPublic());
+                byte[] calculateAgreementOneZero = TkmCypherProviderBCX25519.calculateAgreement(keyOne.getPrivate(), keyZero.getPublic());
+                log.info("k0k1 " + Arrays.toString(calculateAgreementOneZero));
+                log.info("k1k0 " + Arrays.toString(calculateAgreementZeroOne));
+                assertArrayEquals(calculateAgreementZeroOne, calculateAgreementOneZero);
+
+            }
+
+        }
+    }
+
+    @AfterAll
     public static void tearDownClass() {
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
     }
 
@@ -382,9 +494,7 @@ public class WalletTest {
             log.info("" + trxType);
             for (int j = 0; j < 5; j++) {
                 for (int k = 0; k < 2; k++) {
-                    for (int i = 0; i < messages.length; i++) {
-                        String[] mess = messages[i];
-
+                    for (String[] mess : messages) {
                         for (KeyContexts.WalletCypher walletCypher : walletsFrom.keySet()) {
                             try {
                                 log.info("Testing wallet type "
@@ -466,4 +576,184 @@ public class WalletTest {
         assertTrue(costInTK.compareTo(new BigDecimal(new BigInteger("13"))) == 0);
 
     }
+
+    @Test
+    public void nextIntTest() throws UnlockWalletException, WalletEmptySeedException, WalletBurnedException, InvalidWalletIndexException, PublicKeySerializzationException {
+        SeededRandom seededRandomP1 = new SeededRandom("pollo", "test", 1);
+        SeededRandom seededRandomP2 = new SeededRandom("pollo", "test", 1);
+        SeededRandom seededRandomPIntTest = new SeededRandom("pollo", "test", 1);
+        //SeededRandom seededRandom = new SeededRandom("pollo", "test", 1);
+        byte[] by = new byte[32];
+        // 0.10.0 — ephemeral ctor signature changed; -1 routes to legacy
+        // flat directory (preserves pre-0.10.0 file layout for this test).
+        InstanceWalletKeyStoreBCED25519 iwk = new InstanceWalletKeyStoreBCED25519("test_key", 1024, -1);
+        String[] wallR1 = new String[44];
+        String[] wallR2 = new String[44];
+        for (int i = 0; i < 10; i++) {
+            String publicKeyAtIndexURL64 = iwk.getPublicKeyAtIndexURL64(i);
+            wallR1[i] = publicKeyAtIndexURL64;
+            log.info("\twallet " + i + " " + publicKeyAtIndexURL64);
+        }
+        for (int i = 0; i < 10; i++) {
+            String publicKeyAtIndexURL64 = iwk.getPublicKeyAtIndexURL64(i);
+            wallR2[i] = publicKeyAtIndexURL64;
+            log.info("\twallet " + i + " " + publicKeyAtIndexURL64);
+        }
+        assertArrayEquals("must be deterministic", wallR1, wallR2);
+        String[] p1 = new String[10];
+        String[] p2 = new String[10];
+        for (int i = 0; i < 10; i++) {
+            seededRandomP1.nextBytes(by);
+            p1[i] = TkmSignUtils.fromByteArrayToHexString(by);
+            log.info("b: " + p1[i]);
+        }
+        for (int i = 0; i < 10; i++) {
+            seededRandomP2.nextBytes(by);
+            p2[i] = TkmSignUtils.fromByteArrayToHexString(by);
+            log.info("b: " + p2[i]);
+        }
+        assertArrayEquals("must be deterministic", p1, p2);
+        //advance p2
+        for (int i = 0; i < 10; i++) {
+            seededRandomP2.nextBytes(by);
+            p2[i] = TkmSignUtils.fromByteArrayToHexString(by);
+            log.info("b2: " + p2[i]);
+        }
+        for (int i = 0; i < p2.length; i++) {
+            assert (!p1[i].equals(p2[i]));
+
+        }
+        int[] firstRun = new int[10];
+        int[] secondRun = new int[10];
+        for (int i = 0; i < 10; i++) {
+            int nextInt = seededRandomPIntTest.nextInt();
+            firstRun[i] = nextInt;
+            log.info("first i " + nextInt);
+        }
+        for (int i = 0; i < 10; i++) {
+            int nextInt = seededRandomPIntTest.nextInt();
+            secondRun[i] = nextInt;
+            log.info("second i " + nextInt);
+        }
+        for (int i = 0; i < secondRun.length; i++) {
+            assert (firstRun[i] != secondRun[i]);
+        }
+
+    }
+
+    @Test
+    public void b64rsa() throws UnlockWalletException, WalletException {
+        InstanceWalletKeystoreInterface iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");
+        String publicKeyAtIndexURL64 = iwk.getPublicKeyAtIndexURL64(0);
+        log.info(publicKeyAtIndexURL64);
+    }
+
+    @Test
+    public void byteRsa() throws UnlockWalletException, WalletException {
+        InstanceWalletKeystoreInterface iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");
+        byte[] publicKeyAtIndexByte = iwk.getPublicKeyAtIndexByte(0);
+        log.info(Arrays.toString(publicKeyAtIndexByte));
+    }
+
+    @Test
+    public void b64rsaPlusByte() throws UnlockWalletException, WalletException {
+        InstanceWalletKeystoreInterface iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");
+        String publicKeyAtIndexURL64 = iwk.getPublicKeyAtIndexURL64(0);
+        log.info(publicKeyAtIndexURL64);
+        //InstanceWalletKeystoreInterface iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");
+        byte[] publicKeyAtIndexByte = iwk.getPublicKeyAtIndexByte(0);
+        log.info(Arrays.toString(publicKeyAtIndexByte));
+        String fromByteArrayToB64URL = TkmSignUtils.fromByteArrayToB64URL(publicKeyAtIndexByte);
+        assertEquals("must be equals", publicKeyAtIndexURL64, fromByteArrayToB64URL);
+    }
+
+    @Test
+    public void generateRSAKeys() throws UnlockWalletException, InvalidWalletIndexException, PublicKeySerializzationException, KeyDecodeException {
+        InstanceWalletKeyStoreBCRSA4096ENC iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");
+        for (int i = 0; i < 3; i++) {
+            String aPublicKey = iwk.getPublicKeyAtIndexURL64(i);
+            log.info("Public key: " + aPublicKey);
+            AsymmetricKeyParameter aPrivate = iwk.getKeyPairAtIndex(i).getPrivate();
+            String rsaPrivateKeyToPKCS8EncodedKeyB64URL = TkmSignUtils.fromRSAPrivateKeyToPKCS8EncodedKeyB64URL(aPrivate);
+            log.info("Private key:  " + rsaPrivateKeyToPKCS8EncodedKeyB64URL);
+        }
+    }
+    
+    @Test 
+    public void testStaticEncryptionStrings() throws UnlockWalletException, WalletException{
+        for(int i = 0; i < 3 ; i++){
+            String publicKey = TestEnvObjectsCore.REF_ADDR_RSA_PUB_KEY[i];
+            String privateKey = TestEnvObjectsCore.REF_ADDR_RSA_PRIV_KEY[i];
+            String plaintext = TestEnvObjectsCore.REF_ADDR_ARRAY_LOREM[i].substring(0, 130);
+            String encrypted = TkmCypherProviderBCRSA4096ENC.encrypt(publicKey, plaintext);
+            String decrypted = TkmCypherProviderBCRSA4096ENC.decrypt(privateKey, encrypted);
+            assertEquals(plaintext.length(), decrypted.length());
+            assertEquals("must be equal", plaintext, decrypted);
+        }
+    }
+    
+    @Test
+    public void testDynamicEncryptionStrings() throws UnlockWalletException, InvalidWalletIndexException, PublicKeySerializzationException, WalletException, KeyDecodeException{
+        InstanceWalletKeyStoreBCRSA4096ENC iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa","password");
+        for(int i = 0; i < 3; i++){
+            String apublicKey = iwk.getPublicKeyAtIndexURL64(i);
+            String plaintext = UUID.randomUUID().toString();
+            String encrypted = TkmCypherProviderBCRSA4096ENC.encrypt(apublicKey, plaintext);
+            String decrypted = TkmCypherProviderBCRSA4096ENC.decrypt(iwk, i, encrypted);
+            assertEquals("must be equals", plaintext, decrypted);
+        }   
+    }
+    
+    @Test
+    public void testEncryptionStringsFail() throws UnlockWalletException, WalletException{
+        for(int i = 0; i < 2; i++){
+            String publicKey = TestEnvObjectsCore.REF_ADDR_RSA_PUB_KEY[i];
+            String privateKey = TestEnvObjectsCore.REF_ADDR_RSA_PRIV_KEY[i+1];
+            String plaintext = TestEnvObjectsCore.REF_ADDR_ARRAY[i];
+            String encrypted = TkmCypherProviderBCRSA4096ENC.encrypt(publicKey, plaintext);
+            String decrypted = null;
+            try {
+                decrypted = TkmCypherProviderBCRSA4096ENC.decrypt(privateKey, encrypted);
+                assertTrue("expection must be thrown here", false);
+            } 
+            catch (WalletException e) {
+                assertTrue("exception triggered as expected", true);
+            }
+            log.info(decrypted);
+        }
+    }
+
+    
+    @Test
+    public void stringKeyToRSAKey() throws UnlockWalletException, WalletException, KeyDecodeException {
+        InstanceWalletKeystoreInterface iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");
+        String publicKeyAtIndexURL64 = iwk.getPublicKeyAtIndexURL64(0);
+        log.info(publicKeyAtIndexURL64);
+        //InstanceWalletKeystoreInterface iwk = new InstanceWalletKeyStoreBCRSA4096ENC("test_rsa", "password");
+        byte[] publicKeyAtIndexByte = iwk.getPublicKeyAtIndexByte(0);
+        log.info(Arrays.toString(publicKeyAtIndexByte));
+        RSAPublicKey rsaPubDecoded = TkmSignUtils.stringPublicKeyToBCRSA4096ENCKey(publicKeyAtIndexURL64);
+        AsymmetricCipherKeyPair keyPairAtIndex = iwk.getKeyPairAtIndex(0);
+        AsymmetricKeyParameter aPublic = keyPairAtIndex.getPublic();
+        RSAKeyParameters rsaPublic = (RSAKeyParameters) aPublic;
+        assertEquals(rsaPubDecoded.getPublicExponent(), rsaPublic.getExponent());
+        assertEquals(rsaPubDecoded.getModulus(), rsaPublic.getModulus());
+        String encrypted = TkmCypherProviderBCRSA4096ENC.encrypt(publicKeyAtIndexURL64, "pollo");
+        log.info(encrypted);
+        String decryptedPlaintext = TkmCypherProviderBCRSA4096ENC.decrypt(iwk, 0, encrypted);
+        log.info(decryptedPlaintext);
+        AsymmetricKeyParameter aPrivate = iwk.getKeyPairAtIndex(0).getPrivate();
+        String rsaPrivateKeyToPKCS8EncodedKeyB64URL = TkmSignUtils.fromRSAPrivateKeyToPKCS8EncodedKeyB64URL(aPrivate);
+        log.info(rsaPrivateKeyToPKCS8EncodedKeyB64URL);
+        RSAPrivateKey fromPKCS8EncodedKeyB64URLToRSAPrivateKey = TkmSignUtils.fromPKCS8EncodedKeyB64URLToRSAPrivateKey(rsaPrivateKeyToPKCS8EncodedKeyB64URL);
+        RSAPrivateKey asymmetricKeyParameterToRSAPrivateKey = TkmSignUtils.asymmetricKeyParameterToRSAPrivateKey(aPrivate);
+        assertEquals(fromPKCS8EncodedKeyB64URLToRSAPrivateKey.getModulus(), asymmetricKeyParameterToRSAPrivateKey.getModulus());
+        assertEquals(fromPKCS8EncodedKeyB64URLToRSAPrivateKey.getPrivateExponent(), asymmetricKeyParameterToRSAPrivateKey.getPrivateExponent());
+        //TkmCypherProviderBCRSA4096ENC.decryptToByte(asymmetricKeyParameterToRSAPrivateKey, encrypted)
+        String decrypt = TkmCypherProviderBCRSA4096ENC.decrypt(rsaPrivateKeyToPKCS8EncodedKeyB64URL, encrypted);
+        log.info(decrypt);
+        assertEquals(decrypt, "pollo");
+        assertEquals(decryptedPlaintext, "pollo");
+    }
+
 }

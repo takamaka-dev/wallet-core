@@ -1,0 +1,60 @@
+{
+  "schema" : "baseline-mnemonics-v1",
+  "generated_at" : "2026-05-07T11:30:28.348478309Z",
+  "warning" : "DO NOT USE FOR PRODUCTION. These mnemonics are committed to the wallet-core repository and visible to every contributor. Test fixtures only.",
+  "purpose" : "Phase A baseline for wallet-core 0.10.0 audit-driven fixes (TASK-wallet-core-app-root-overload.md §12.6).",
+  "mnemonic_count" : 10,
+  "words_per_mnemonic" : 25,
+  "checksum_type" : "PBKDF2-HMAC-SHA512 (last 2 of 25 words)",
+  "mnemonics" : [ {
+    "id" : "M01",
+    "words_concat" : "add mother infant knock cigar inform alpha obey trouble fish senior edit escape feel predict shallow emotion now autumn risk across black egg online silk",
+    "crc_valid" : true,
+    "words" : [ "add", "mother", "infant", "knock", "cigar", "inform", "alpha", "obey", "trouble", "fish", "senior", "edit", "escape", "feel", "predict", "shallow", "emotion", "now", "autumn", "risk", "across", "black", "egg", "online", "silk" ]
+  }, {
+    "id" : "M02",
+    "words_concat" : "fork chimney enemy verify army spin salmon remind resemble hunt stick dose grain blush heart dress fine paddle kingdom museum damp dice grass test sing",
+    "crc_valid" : true,
+    "words" : [ "fork", "chimney", "enemy", "verify", "army", "spin", "salmon", "remind", "resemble", "hunt", "stick", "dose", "grain", "blush", "heart", "dress", "fine", "paddle", "kingdom", "museum", "damp", "dice", "grass", "test", "sing" ]
+  }, {
+    "id" : "M03",
+    "words_concat" : "dust where more cereal arm decorate mixed chest cake next leisure park tree couch pretty rotate vanish illegal sheriff rabbit clap type floor item stage",
+    "crc_valid" : true,
+    "words" : [ "dust", "where", "more", "cereal", "arm", "decorate", "mixed", "chest", "cake", "next", "leisure", "park", "tree", "couch", "pretty", "rotate", "vanish", "illegal", "sheriff", "rabbit", "clap", "type", "floor", "item", "stage" ]
+  }, {
+    "id" : "M04",
+    "words_concat" : "music gentle ask sport culture forum cloth isolate scan absorb advance resist luxury number winner chest arctic hungry pipe input cannon green delay trust banner",
+    "crc_valid" : true,
+    "words" : [ "music", "gentle", "ask", "sport", "culture", "forum", "cloth", "isolate", "scan", "absorb", "advance", "resist", "luxury", "number", "winner", "chest", "arctic", "hungry", "pipe", "input", "cannon", "green", "delay", "trust", "banner" ]
+  }, {
+    "id" : "M05",
+    "words_concat" : "goose quality eternal clean amateur valve nice ocean phone hire rug coil luxury bleak garage tree lamp cave divert invite blame immense rely attitude fold",
+    "crc_valid" : true,
+    "words" : [ "goose", "quality", "eternal", "clean", "amateur", "valve", "nice", "ocean", "phone", "hire", "rug", "coil", "luxury", "bleak", "garage", "tree", "lamp", "cave", "divert", "invite", "blame", "immense", "rely", "attitude", "fold" ]
+  }, {
+    "id" : "M06",
+    "words_concat" : "essence differ talk process shoot nest leaf twice giant team slab project leader post chronic session online frown focus allow asthma garden oppose unusual flag",
+    "crc_valid" : true,
+    "words" : [ "essence", "differ", "talk", "process", "shoot", "nest", "leaf", "twice", "giant", "team", "slab", "project", "leader", "post", "chronic", "session", "online", "frown", "focus", "allow", "asthma", "garden", "oppose", "unusual", "flag" ]
+  }, {
+    "id" : "M07",
+    "words_concat" : "buddy cream tourist claim cancel exclude dog tree unfold door quarter indicate poverty frozen train wagon clog scrap together word solve attitude lucky sugar jazz",
+    "crc_valid" : true,
+    "words" : [ "buddy", "cream", "tourist", "claim", "cancel", "exclude", "dog", "tree", "unfold", "door", "quarter", "indicate", "poverty", "frozen", "train", "wagon", "clog", "scrap", "together", "word", "solve", "attitude", "lucky", "sugar", "jazz" ]
+  }, {
+    "id" : "M08",
+    "words_concat" : "twelve harbor panic illness please capable pottery lyrics absorb donor solve earn slam emerge crouch movie perfect grass typical tongue brain airport rifle grace swim",
+    "crc_valid" : true,
+    "words" : [ "twelve", "harbor", "panic", "illness", "please", "capable", "pottery", "lyrics", "absorb", "donor", "solve", "earn", "slam", "emerge", "crouch", "movie", "perfect", "grass", "typical", "tongue", "brain", "airport", "rifle", "grace", "swim" ]
+  }, {
+    "id" : "M09",
+    "words_concat" : "innocent because sentence grass income float below farm lake title rally benefit cram quote glad forward keen neglect kitchen produce below pear lemon joke seek",
+    "crc_valid" : true,
+    "words" : [ "innocent", "because", "sentence", "grass", "income", "float", "below", "farm", "lake", "title", "rally", "benefit", "cram", "quote", "glad", "forward", "keen", "neglect", "kitchen", "produce", "below", "pear", "lemon", "joke", "seek" ]
+  }, {
+    "id" : "M10",
+    "words_concat" : "keen sock forget sausage execute task lottery warfare valid legal grit mixed drip minimum manage debate assault vacuum basic donate lamp collect act tiger era",
+    "crc_valid" : true,
+    "words" : [ "keen", "sock", "forget", "sausage", "execute", "task", "lottery", "warfare", "valid", "legal", "grit", "mixed", "drip", "minimum", "manage", "debate", "assault", "vacuum", "basic", "donate", "lamp", "collect", "act", "tiger", "era" ]
+  } ]
+}

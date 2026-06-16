@@ -20,6 +20,7 @@ import io.takamaka.wallet.exceptions.NullInternalTransactionBeanException;
 import io.takamaka.wallet.exceptions.TransactionCanNotBeCreatedException;
 import io.takamaka.wallet.exceptions.TransactionCanNotBeSignedException;
 import io.takamaka.wallet.exceptions.WalletException;
+import static io.takamaka.wallet.utils.KeyContexts.WalletCypher.Curve25519BC;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -91,6 +92,13 @@ public class TkmWallet {
                         throw new TransactionCanNotBeSignedException(signatureBean.getEx());
                     }
                     break;
+                case Curve25519BC:
+                    
+                    break;
+                case Ed25519:
+
+                case Tink:
+
                 default:
                     signatureBean.setValid(false);
                     log.error("UNKNOWN CYPHER");

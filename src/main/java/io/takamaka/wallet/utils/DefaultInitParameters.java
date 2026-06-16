@@ -39,7 +39,7 @@ public class DefaultInitParameters {
      */
     public static String APPLICATION_ROOT_FOLDER_NAME = ".tkm-chain";
     /**
-     * 
+     *
      */
     public static String DELETED_WALLET_FOLDER = "wallet_removed_by_delete";
     /**
@@ -220,10 +220,9 @@ public class DefaultInitParameters {
     public static  String LOCAL_BOOKMARK_URL = "http://127.0.0.1:60006/bookmark";
     public static  String DEFAULT_BOOKMARK_URL = "http://takamaka.io:60006/api/bookmark";
      */
-    
     public static String BLOCKCHAIN_HISTORY_API = "/blockhistory";
     public static String GET_BLOCK_API = "/getblock";
-    
+
     public static String FULL_ADDRESS_MAIN_LIST = "assignoverflow";
     public static String FULL_ADDRESS_MAIN_LIST_STATS = "mainlist";
     public static String FULL_OVERFLOW_LIST = "registeroverflow";
@@ -251,7 +250,6 @@ public class DefaultInitParameters {
     };
     public static  BaseurlBean BASEURL_EXPLORER_DEFAULT = BASEURL_EXPLORER_PRODUCTION;
      */
-   
     //
     // SMART CONTRACT
     //
@@ -940,7 +938,6 @@ public class DefaultInitParameters {
         DefaultInitParameters.DEFAULT_SEARCH_RESULT_LIMIT = SEARCH_RESULT_LIMIT;
     }
 
-
     public String getFULL_ADDRESS_MAIN_LIST() {
         return FULL_ADDRESS_MAIN_LIST;
     }
@@ -1044,7 +1041,6 @@ public class DefaultInitParameters {
     public void setLRBEANS_VALIDITY_THRESHOLD(long LRBEANS_VALIDITY_THRESHOLD) {
         DefaultInitParameters.LRBEANS_VALIDITY_THRESHOLD = LRBEANS_VALIDITY_THRESHOLD;
     }
-
 
     public String getTAKAMAKA_CODE_JAR_RESOURCE() {
         return TAKAMAKA_CODE_JAR_RESOURCE;
