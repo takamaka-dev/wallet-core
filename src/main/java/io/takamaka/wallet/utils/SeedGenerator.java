@@ -127,7 +127,22 @@ public class SeedGenerator {
     }
 
     /**
-     *
+     * DR-011 progress seam — a plain callback fired after each of the 25 words
+     * is derived (≈25 ticks, matching the Flutter {@code generateSeedPwhWithProgress}
+     * granularity). Deliberately NOT a Reactor type: wallet-core stays
+     * dependency-clean (Java 11, no reactor-core); upstream (rsclient /
+     * chat-web-gui) bridges this into a {@code Flux<Progress>}. The callback is
+     * invoked AFTER the per-word salt update and never touches the hash
+     * computation, so the derived seed is byte-identical with or without it
+     * (parity-safe).
+     */
+    @FunctionalInterface
+    public interface SeedProgressListener {
+
+        void onWordDerived(int completedWords, int totalWords);
+    }
+
+    /**
      * @param rndWords the generated list of words
      * @return String is the generated seed
      * @throws NoSuchAlgorithmException
@@ -137,6 +152,24 @@ public class SeedGenerator {
      * @throws HashProviderNotFoundException
      */
     public static String generateSeedPWH(List<String> rndWords) throws NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
+        return generateSeedPWH(rndWords, null);
+    }
+
+    /**
+     * Progress-reporting overload of {@link #generateSeedPWH(java.util.List)}.
+     * Output-identical to the no-arg form; {@code progress} (nullable) is fired
+     * once per derived word.
+     *
+     * @param rndWords the generated list of words
+     * @param progress per-word progress callback, or {@code null} for none
+     * @return String is the generated seed
+     * @throws NoSuchAlgorithmException
+     * @throws HashEncodeException
+     * @throws InvalidKeySpecException
+     * @throws HashAlgorithmNotFoundException
+     * @throws HashProviderNotFoundException
+     */
+    public static String generateSeedPWH(List<String> rndWords, SeedProgressListener progress) throws NoSuchAlgorithmException, HashEncodeException, InvalidKeySpecException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         int saltIndex = 0;
         init();
         for (int i = 0; i < words.length; i++) {
@@ -149,6 +182,8 @@ public class SeedGenerator {
         List<String> hashTable;
         String salt = String.valueOf(saltIndex);
         String tempWord = "";
+        int completedWords = 0;
+        final int totalWords = rndWords.size();
         for (String word : rndWords) {
             hashTable = new ArrayList<>();
             tempWord = word;
@@ -160,6 +195,10 @@ public class SeedGenerator {
             }
             int modIndex = new BigInteger(salt.getBytes()).abs().mod(new BigInteger("2048")).intValue();
             salt += hashTable.get(modIndex);
+            completedWords++;
+            if (progress != null) {
+                progress.onWordDerived(completedWords, totalWords);
+            }
         }
 
         return tempWord;
