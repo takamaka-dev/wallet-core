@@ -87,7 +87,25 @@ public class WalletHelper {
     }
 
     public static String getRecoveryWords(String filename, String password) throws InvalidCypherException, FileNotFoundException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnlockWalletException {
-        KeyBean key = readKeyFile(Paths.get(FileHelper.getDefaultWalletDirectoryPath().toString(), filename + DefaultInitParameters.WALLET_EXTENSION), password);
+        return getRecoveryWords(filename, password, null);
+    }
+
+    /**
+     * 0.10.0 — appRoot-aware overload of {@link #getRecoveryWords(String, String)}.
+     * {@code appRoot == null} falls back to the legacy default wallet directory, so
+     * the no-appRoot form is behaviour-identical. Lets a wallet be read from an
+     * isolated application root (e.g. a {@code @TempDir} in tests, or a disposable
+     * test-wallet location) without touching the user's real wallet folder —
+     * completing the appRoot-overload surface alongside the keystore ctors and the
+     * {@link FileHelper} path resolvers.
+     *
+     * @param filename wallet name (without extension)
+     * @param password wallet password
+     * @param appRoot explicit application root, or {@code null} for the default
+     * @return the space-separated recovery words
+     */
+    public static String getRecoveryWords(String filename, String password, Path appRoot) throws InvalidCypherException, FileNotFoundException, NoSuchProviderException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnlockWalletException {
+        KeyBean key = readKeyFile(Paths.get(FileHelper.getDefaultWalletDirectoryPath(appRoot).toString(), filename + DefaultInitParameters.WALLET_EXTENSION), password);
         return key.getWords();
     }
 
