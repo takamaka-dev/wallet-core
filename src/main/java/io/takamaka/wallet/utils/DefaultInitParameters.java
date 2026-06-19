@@ -89,6 +89,34 @@ public class DefaultInitParameters {
 
     public static BigInteger SLOT_PER_EPOCH = new BigInteger("" + SLOT_PER_EPOCH_INT);
     public static BigInteger MAX_ALLOWED_SLOTS_PER_EPOCH = SLOT_PER_EPOCH.divide(TARGET_CLIENT_NUMBER_MAX_BI).multiply(BigInteger.ONE.add(BigInteger.ONE));
+
+    // ── Reward-algorithm version activation (consensus hard-fork gate) ───────────
+    // The per-holder reward list is hashed into the block (TkmBlockUtils.getRewardListHash
+    // → getBlockHash), so any change to reward computation changes block hashes and is a
+    // CONSENSUS change. The penalty frozen-fee path had a legacy quirk in the reference
+    // (TkmStateHelper: holderRedFrozenFee = holderGreenFee — green value into the red slot).
+    // To fix it without forking historical blocks, behaviour is gated by an activation
+    // coordinate: blocks with (epoch, slot) BELOW the activation use v1 (legacy/buggy,
+    // bit-compatible with existing chain history); blocks AT/AFTER use v2 (fixed).
+    // BOTH clients (nodeflux + takamaka-chain) MUST compile the SAME activation coordinate
+    // or they fork at the boundary. Override with -Dtakamaka.rewardV2Epoch / .rewardV2Slot.
+    //   default (0,0)  -> v2 everywhere (clean network, correct from genesis)
+    //   (E,S)          -> coordinated hard fork: v1 below (E,S), v2 at/after
+    //   (MAX,_)        -> v1 everywhere (validate / replay an all-legacy chain)
+    public static int REWARD_V2_ACTIVATION_EPOCH = Integer.getInteger("takamaka.rewardV2Epoch", 0);
+    public static int REWARD_V2_ACTIVATION_SLOT = Integer.getInteger("takamaka.rewardV2Slot", 0);
+
+    /**
+     * Consensus gate: true when a block at (epoch, slot) uses the v2 (fixed) reward
+     * algorithm, false for v1 (legacy/buggy, historical-compatible). Lexicographic on
+     * (epoch, slot) against the activation coordinate. Must be identical in every client.
+     */
+    public static boolean isRewardAlgoV2(int epoch, int slot) {
+        if (epoch != REWARD_V2_ACTIVATION_EPOCH) {
+            return epoch > REWARD_V2_ACTIVATION_EPOCH;
+        }
+        return slot >= REWARD_V2_ACTIVATION_SLOT;
+    }
     public static int TRANSACTION_LIMIT_MB_PER_BLOCK = 6;
     public static int TRANSACTION_LIMIT_NUMBER_PER_BLOCK = 10000;
     public static int PAYBACK_LIMIT_SIZE_MB = 2;
