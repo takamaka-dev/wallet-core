@@ -79,8 +79,12 @@ public class DefaultInitParameters {
     public static int TARGET_CLIENT_NUMBER_MAX_INT = Integer.parseInt(TARGET_CLIENT_NUMBER_MAX);
     public static BigInteger TARGET_CLIENT_NUMBER_MAX_BI = new BigInteger(TARGET_CLIENT_NUMBER_MAX);
     public static BigInteger YEARS_MOORE_LAW = new BigInteger("10");
-    public static int SLOT_PER_EPOCH_INT = 24000;
-    //public static  int SLOT_PER_EPOCH_INT = 60;
+    // Epoch length. Default 24000 = production (behaviour unchanged). Override for
+    // short-epoch testing with -Dtakamaka.slotPerEpoch=<n> (e.g. 2000) — no source
+    // edit / full rebuild needed. Added 2026-06-19 after short-epoch runs surfaced
+    // GAP-1 (payback split) + cross-epoch-sync bugs early. BLOCK_PENATY_LIMIT and
+    // SLOT_PER_EPOCH below derive from this at class-load, so they follow the override.
+    public static int SLOT_PER_EPOCH_INT = Integer.getInteger("takamaka.slotPerEpoch", 24000);
     public static int BLOCK_PENATY_LIMIT = SLOT_PER_EPOCH_INT / (TARGET_CLIENT_NUMBER_MAX_INT / 2);
 
     public static BigInteger SLOT_PER_EPOCH = new BigInteger("" + SLOT_PER_EPOCH_INT);
