@@ -145,7 +145,13 @@ public class TkmCypherProviderBCRSA4096ENC256 {
                    NoSuchAlgorithmException, NoSuchPaddingException, InvalidAlgorithmParameterException {
         Cipher cipher = Cipher.getInstance(KeyContexts.BC_RSA_4096ENC_SHA256_FORMAT);
         cipher.init(Cipher.DECRYPT_MODE, asymmetricKeyParameterToRSAPrivateKey, createOAEPParams());
-        byte[] decrypted = cipher.doFinal(Base64.decode(cyphertext));
+        // F11: accept BOTH alphabets and any padding, permanently. `enc_key` exists on the wire as
+        // standard base64 (this provider's own output) AND as URL-safe with '.' padding (the wallet
+        // SDK's). Both are inside signed, permanently-stored envelopes, so neither form can ever be
+        // re-encoded or retired. Plain Base64.decode is alphabet-STRICT and threw DecoderException on
+        // the URL-safe form — an UNCHECKED exception, so it escaped callers' catch blocks and the
+        // conversation was silently dropped. See rschat-docs/security/BASE64_ENCODING_CONTRACT.md.
+        byte[] decrypted = cipher.doFinal(TkmSignUtils.fromAnyB64ToByteArray(cyphertext));
         return decrypted;
     }
 

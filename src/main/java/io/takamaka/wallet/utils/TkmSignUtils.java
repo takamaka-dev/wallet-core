@@ -543,6 +543,54 @@ public class TkmSignUtils {
         return null;
     }
 
+    /**
+     * Decodes a base64 string in <b>either</b> alphabet and <b>any</b> padding — the permanent read
+     * contract for wire fields that exist in more than one form.
+     *
+     * <p>Accepts all four combinations: {@code -_} with {@code .} padding (BouncyCastle
+     * {@code UrlBase64}, the Takamaka house form), {@code -_} with {@code =}, {@code +/} with {@code =}
+     * (RFC 4648 §4), and any of those unpadded.
+     *
+     * <p><b>Why this exists (F11).</b> The RSA-wrapped conversation key {@code enc_key} is emitted as
+     * standard base64 by Java — an artifact of BouncyCastle's {@code Base64.toBase64String}, not a design
+     * — and as URL-safe by the wallet SDK. The two stock decoders fail on <i>opposite halves</i> of that
+     * problem: BouncyCastle's {@code Base64.decode} is alphabet-strict (it throws on {@code -_}) while
+     * Dart's {@code base64.decode} is alphabet-agnostic but padding-strict (it throws on {@code .}).
+     * Neither tolerates the other's output, so a conversation created by one client was silently
+     * unopenable by the other.
+     *
+     * <p>{@code enc_key} is covered by the creator's Ed25519 signature and is stored verbatim on the
+     * server and in every device's local database, so historic values can <b>never</b> be re-encoded.
+     * Accepting both forms is therefore <b>not</b> a transitional measure to be removed after a migration
+     * — it is the read contract, and it is permanent. See
+     * {@code rschat-docs/security/BASE64_ENCODING_CONTRACT.md}.
+     *
+     * <p>⚠️ Apply this at the crypto boundary, <b>after</b> signature verification — never as a pre-parse
+     * normalisation of wire JSON, which would change the signed bytes and break every existing envelope.
+     *
+     * <p>Unlike {@link #fromB64ToByteArray} and {@link #fromB64URLToByteArray}, this does <b>not</b>
+     * swallow a failure into {@code null}: a null return there has produced {@code NullPointerException}s
+     * deep inside a cipher, which is strictly worse than a decode error. Invalid input throws.
+     *
+     * @param encoded a base64 string in any supported alphabet/padding, not null
+     * @return the decoded bytes
+     * @throws org.bouncycastle.util.encoders.DecoderException if the input is not valid base64
+     */
+    public static final byte[] fromAnyB64ToByteArray(String encoded) {
+        if (encoded == null) {
+            throw new IllegalArgumentException("base64 input must not be null");
+        }
+        String normalized = encoded
+                .replace('-', '+')
+                .replace('_', '/')
+                .replace('.', '=');
+        int remainder = normalized.length() % 4;
+        if (remainder > 0) {
+            normalized = normalized + "====".substring(remainder);
+        }
+        return Base64.decode(normalized);
+    }
+
     public static final String fromHexToB64(String hexMessage) {
         String res = null;
         try {
