@@ -55,6 +55,11 @@ import org.bouncycastle.util.encoders.UrlBase64;
  */
 @Slf4j
 public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreInterface {
+    /** VB-29: CSPRNG for every RandomStringGenerator in this class. commons-text falls back to
+     *  ThreadLocalRandom when no provider is supplied — a 64-bit clock-seeded root shared by the whole
+     *  JVM. See rschat-docs/security/PRNG_ENTROPY_AUDIT.md. */
+    private static final java.security.SecureRandom TKM_CSPRNG = new java.security.SecureRandom();
+
 
     private Map<Integer, AsymmetricCipherKeyPair> signKeys;
     private Map<Integer, String> hexPublicKeys;
@@ -388,6 +393,7 @@ public class InstanceWalletKeyStoreBCED25519 implements InstanceWalletKeystoreIn
             RandomStringGenerator generator = new RandomStringGenerator.Builder()
                     .withinRange('0', 'z')
                     .filteredBy(Character::isLetterOrDigit)
+                    .usingRandom(TKM_CSPRNG::nextInt)
                     .get();
             seed = generator.generate(seedLength);
             FileHelper.writeStringToFile(ephDir, currentWalletName, seed, false);
