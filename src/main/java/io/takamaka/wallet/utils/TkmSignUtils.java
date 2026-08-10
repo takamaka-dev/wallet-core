@@ -206,10 +206,48 @@ public class TkmSignUtils {
         return Hash512(input);
     }
 
+    /**
+     * ⚠️ <b>NOT the raw digest.</b> Returns the <b>ASCII bytes of the Base64URL TEXT</b> of the hash
+     * (see {@link #HashByte}), i.e. {@code Hash256B64URL(input).getBytes()} — never the 32 raw digest bytes.
+     *
+     * <p>The name reads as "the hash, as bytes", and that reading is wrong. Hex-encoding this value yields
+     * the hex of a Base64URL <i>string</i>, not the hex of a digest. That mistake shipped: it silently
+     * corrupted the cross-platform SHA3 test vectors, whose {@code expectedHex} became
+     * {@code hex("p__G-L8e...")} instead of {@code a7ffc6f8...}, so the check compared no digest at all for
+     * a long time while also emitting false alarms (tracked as C51 in {@code rschat-docs/HANDOFF.md}).
+     *
+     * <p><b>If you want the raw digest</b>, use {@code MessageDigest.getInstance("SHA3-256")} directly.
+     * <b>If you want the canonical text form</b>, use {@link #Hash256B64URL} (Base64URL, {@code .} padding)
+     * or {@link #Hash256ToHex} (hex of the raw digest).
+     *
+     * <p>This method is <b>deliberately not changed</b>: it is published API with consumers outside this
+     * estate, and its output is already embedded in persisted identifiers (see {@link #getShortenedAddr}).
+     * Correcting it would silently invalidate stored data. The behaviour is the contract; only the name
+     * is misleading, so it is documented rather than "fixed".
+     */
     public static final byte[] Hash256byte(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.HashByte(input, FixedParameters.HASH_256_ALGORITHM);
     }
 
+    /**
+     * ⚠️ <b>NOT the raw digest.</b> Returns the <b>ASCII bytes of the Base64URL TEXT</b> of the hash
+     * (see {@link #HashByte}), i.e. {@code Hash384B64URL(input).getBytes()} — never the 48 raw digest bytes.
+     *
+     * <p>The name reads as "the hash, as bytes", and that reading is wrong. Hex-encoding this value yields
+     * the hex of a Base64URL <i>string</i>, not the hex of a digest. That mistake shipped: it silently
+     * corrupted the cross-platform SHA3 test vectors, whose {@code expectedHex} became
+     * {@code hex("p__G-L8e...")} instead of {@code a7ffc6f8...}, so the check compared no digest at all for
+     * a long time while also emitting false alarms (tracked as C51 in {@code rschat-docs/HANDOFF.md}).
+     *
+     * <p><b>If you want the raw digest</b>, use {@code MessageDigest.getInstance("SHA3-384")} directly.
+     * <b>If you want the canonical text form</b>, use {@link #Hash384B64URL} (Base64URL, {@code .} padding)
+     * or {@link #Hash384ToHex} (hex of the raw digest).
+     *
+     * <p>This method is <b>deliberately not changed</b>: it is published API with consumers outside this
+     * estate, and its output is already embedded in persisted identifiers (see {@link #getShortenedAddr}).
+     * Correcting it would silently invalidate stored data. The behaviour is the contract; only the name
+     * is misleading, so it is documented rather than "fixed".
+     */
     public static final byte[] Hash384byte(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.HashByte(input, FixedParameters.HASH_384_ALGORITHM);
     }
@@ -222,6 +260,13 @@ public class TkmSignUtils {
      * @param input
      * @return
      */
+    /**
+     * ⚠️ Inherits the {@link #Hash256byte} trap <b>by design, and it is now load-bearing</b>: this returns
+     * {@code hex(ASCII of Base64URL(SHA3-256(input)))}, not {@code hex(SHA3-256(input))} — an 88-char string,
+     * not 64. Odd-looking, but it is stable and already persisted as an identifier, so DO NOT "correct" it:
+     * doing so would change every shortened address ever stored. Documented here so the next reader does not
+     * mistake it for the C51 bug and try to fix it.
+     */
     public static final String getShortenedAddr(String input) {
         try {
             byte[] HashByte = Hash256byte(input);
@@ -232,6 +277,25 @@ public class TkmSignUtils {
         }
     }
 
+    /**
+     * ⚠️ <b>NOT the raw digest.</b> Returns the <b>ASCII bytes of the Base64URL TEXT</b> of the hash
+     * (see {@link #HashByte}), i.e. {@code Hash512B64URL(input).getBytes()} — never the 64 raw digest bytes.
+     *
+     * <p>The name reads as "the hash, as bytes", and that reading is wrong. Hex-encoding this value yields
+     * the hex of a Base64URL <i>string</i>, not the hex of a digest. That mistake shipped: it silently
+     * corrupted the cross-platform SHA3 test vectors, whose {@code expectedHex} became
+     * {@code hex("p__G-L8e...")} instead of {@code a7ffc6f8...}, so the check compared no digest at all for
+     * a long time while also emitting false alarms (tracked as C51 in {@code rschat-docs/HANDOFF.md}).
+     *
+     * <p><b>If you want the raw digest</b>, use {@code MessageDigest.getInstance("SHA3-512")} directly.
+     * <b>If you want the canonical text form</b>, use {@link #Hash512B64URL} (Base64URL, {@code .} padding)
+     * or {@link #Hash512ToHex} (hex of the raw digest).
+     *
+     * <p>This method is <b>deliberately not changed</b>: it is published API with consumers outside this
+     * estate, and its output is already embedded in persisted identifiers (see {@link #getShortenedAddr}).
+     * Correcting it would silently invalidate stored data. The behaviour is the contract; only the name
+     * is misleading, so it is documented rather than "fixed".
+     */
     public static final byte[] Hash512byte(String input) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         return TkmSignUtils.HashByte(input, FixedParameters.HASH_512_ALGORITHM);
     }
@@ -310,6 +374,10 @@ public class TkmSignUtils {
         return result;
     }
 
+    /**
+     * ⚠️ Returns {@code UrlBase64.encode(digest(input))} — the <b>ASCII bytes of the Base64URL text</b>,
+     * NOT the raw digest. Every {@code Hash*byte} wrapper inherits this. See their javadoc and C51.
+     */
     private static byte[] HashByte(String input, String hashType) throws HashEncodeException, HashAlgorithmNotFoundException, HashProviderNotFoundException {
         try {
             //Base64 b64enc = new Base64();
