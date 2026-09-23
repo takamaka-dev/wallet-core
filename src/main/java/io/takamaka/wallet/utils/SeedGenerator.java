@@ -7,6 +7,7 @@ package io.takamaka.wallet.utils;
 import io.takamaka.wallet.exceptions.HashAlgorithmNotFoundException;
 import io.takamaka.wallet.exceptions.HashEncodeException;
 import io.takamaka.wallet.exceptions.HashProviderNotFoundException;
+import io.takamaka.wallet.exceptions.InvalidRecoveryWordsException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
@@ -15,7 +16,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Random;
 import lombok.extern.slf4j.Slf4j;
 
@@ -95,15 +99,26 @@ public class SeedGenerator {
         }
     }
 
+    /**
+     * True when {@code wordsList} is a valid recovery phrase: exactly 25
+     * words, every word in the dictionary (exact, case-sensitive), and words
+     * 24-25 equal to the checksum of the words before them. The same three
+     * checks as wallet-core-flutter {@code SeedGenerator.verifySeedWords} and
+     * takamaka-sdk-wrap {@code TkmMnemonic.requireValid} (F64).
+     */
     public static boolean verifySeedWords(List<String> wordsList) {
         try {
-            if (wordsList.size() != FixedParameters.WALLET_WORDS_NUMBER) {
+            if (wordsList == null || wordsList.size() != FixedParameters.WALLET_WORDS_NUMBER) {
                 return false;
             }
 
             if (!inizialized) {
                 init();
                 inizialized = true;
+            }
+
+            if (!wordsNotInDictionary(wordsList).isEmpty()) {
+                return false;
             }
 
             String concat = "";
@@ -123,6 +138,52 @@ public class SeedGenerator {
         } catch (HashEncodeException | HashAlgorithmNotFoundException | HashProviderNotFoundException | InvalidKeySpecException | NoSuchAlgorithmException ex) {
             log.error("seed verification failure", ex);
             return false;
+        }
+    }
+
+    /**
+     * 1-based positions of the words that are not in the dictionary (exact,
+     * case-sensitive match); empty when every word is a dictionary word.
+     */
+    public static List<Integer> wordsNotInDictionary(List<String> wordsList) {
+        if (!inizialized) {
+            init();
+            inizialized = true;
+        }
+        Set<String> dictionary = new HashSet<>(Arrays.asList(words));
+        List<Integer> positions = new ArrayList<>();
+        for (int i = 0; i < wordsList.size(); i++) {
+            String w = wordsList.get(i);
+            if (w == null || !dictionary.contains(w)) {
+                positions.add(i + 1);
+            }
+        }
+        return positions;
+    }
+
+    /**
+     * F64 — throws {@link InvalidRecoveryWordsException} unless
+     * {@code wordsList} is a valid phrase (count, dictionary, checksum). The
+     * message carries counts and positions only, never a word.
+     *
+     * @param wordsList the recovery phrase
+     * @throws InvalidRecoveryWordsException when the phrase is not valid
+     */
+    public static void requireValidSeedWords(List<String> wordsList) throws InvalidRecoveryWordsException {
+        if (wordsList == null || wordsList.size() != FixedParameters.WALLET_WORDS_NUMBER) {
+            throw new InvalidRecoveryWordsException("expected " + FixedParameters.WALLET_WORDS_NUMBER
+                    + " recovery words, found " + (wordsList == null ? 0 : wordsList.size()));
+        }
+        List<Integer> unknown = wordsNotInDictionary(wordsList);
+        if (!unknown.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (Integer p : unknown) {
+                sb.append(sb.length() == 0 ? "" : ", ").append(p);
+            }
+            throw new InvalidRecoveryWordsException("word(s) at position " + sb + " are not dictionary words");
+        }
+        if (!verifySeedWords(wordsList)) {
+            throw new InvalidRecoveryWordsException("checksum mismatch: a word is wrong, misspelt or out of order");
         }
     }
 

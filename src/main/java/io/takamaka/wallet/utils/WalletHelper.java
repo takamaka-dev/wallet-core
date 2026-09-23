@@ -172,6 +172,12 @@ public class WalletHelper {
             log.error("error reading encoded file");
             throw new UnlockWalletException("error reading encoded file", ex);
         }
+        // F47 / DR-050 — the app's container v0.2 (outer "version":"0.2",
+        // nested kdf object). Checked first: its header does not map onto
+        // EncKeyBean. See WalletContainerV02.
+        if (WalletContainerV02.isV02(encJson)) {
+            return WalletContainerV02.open(encJson, password);
+        }
         EncKeyBean ekb = TkmTextUtils.enckeyBeanFromJson(encJson);
         if (ekb == null) {
             // Corrupt / unparseable container → safe error (no crypto attempted).
@@ -266,6 +272,34 @@ public class WalletHelper {
             log.error("v2 key file read error", ex);
             throw new UnlockWalletException("v2 keystore unlock failed", ex);
         }
+    }
+
+    /**
+     * F47 / DR-050 — writes {@code key} in the app's {@code .wallet} container
+     * v0.2 ({@link WalletContainerV02}: PBKDF2-HMAC-SHA512 x210000, random
+     * salt, AES-256-GCM): the one container that both the Takamaka app and
+     * wallet-core read. Non-blank words ⇒ {@code format: words} (the words
+     * must be a valid 25-word phrase); blank words ⇒ {@code format:
+     * seed-only}. A capability, NOT the default: {@link #writeKeyFile} keeps
+     * writing v1 until a release decision flips it (older wallet-core
+     * releases cannot read v0.2).
+     */
+    public static Path writeKeyFileV02(Path path, String filename, KeyBean key, String password) throws IOException, WalletException {
+        Path walletPath = Paths.get(path.toString(), filename);
+        if (FileHelper.fileExists(walletPath)) {
+            throw new KeystoreFileExistsException(
+                    "Refusing to overwrite existing keystore at " + walletPath
+                    + " — delete the file explicitly if replacement is intended.");
+        }
+        String json;
+        try {
+            json = WalletContainerV02.seal(key, password);
+        } catch (java.security.GeneralSecurityException ex) {
+            throw new WalletException("v0.2 wallet: encryption failed", ex);
+        }
+        FileHelper.writeStringToFile(path, filename, json, false);
+        log.info("WALLET (v0.2) WRITTEN IN " + walletPath.toString());
+        return walletPath;
     }
 
     /**
@@ -430,6 +464,10 @@ public class WalletHelper {
      * @throws io.takamaka.wallet.exceptions.WalletException
      */
     public static Path importKeyFromWords(List<String> words, Path path, String filename, KeyContexts.WalletCypher cypher, String newPassword) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException, WalletException {
+        // F64 — words 24-25 are a checksum: verify count, dictionary and
+        // checksum BEFORE deriving, or a typo / swapped pair silently
+        // restores a different, empty wallet.
+        SeedGenerator.requireValidSeedWords(words);
         String seed;
         try {
             seed = SeedGenerator.generateSeedPWH(words);
