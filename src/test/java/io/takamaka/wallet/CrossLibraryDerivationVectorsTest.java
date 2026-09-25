@@ -84,7 +84,9 @@ public class CrossLibraryDerivationVectorsTest {
     static void load() throws Exception {
         try (InputStream in = CrossLibraryDerivationVectorsTest.class.getClassLoader().getResourceAsStream(VECTORS_RESOURCE)) {
             assertNotNull(in, VECTORS_RESOURCE);
-            raw = in.readAllBytes();
+            // F212: the sha256 pins the canonical LF bytes. A Windows checkout with core.autocrlf=true turns
+            // them into CRLF, so the read is normalised CRLF->LF first (as F209); any other byte change still fails.
+            raw = new String(in.readAllBytes(), StandardCharsets.UTF_8).replace("\r\n", "\n").getBytes(StandardCharsets.UTF_8);
         }
         v = new ObjectMapper().readTree(raw);
         mnemonic = list(v.get("mnemonic"));

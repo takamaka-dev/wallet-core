@@ -1,0 +1,2 @@
+# F212: the cross-library vector copy is sha256-asserted byte for byte: never convert its line endings.
+src/test/resources/vectors/*.json -text
